@@ -621,6 +621,8 @@ export interface ApiMovers {
   generated_at: string;
   gainers: ApiMoverRow[];
   losers: ApiMoverRow[];
+  /** Re-sniffed in the window to the exact same score — "Held their ground". */
+  steady: ApiMoverRow[];
   /** Hosts with ≥2 same-version scans inside the window. */
   hosts_tracked: number;
   /** Honest "early days" note when the window is thin. */

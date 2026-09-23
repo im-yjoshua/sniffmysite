@@ -3,6 +3,39 @@
 > One task at a time (§0.1). Each task: build → `npm run build` green →
 > self-review against the anti-slop law (§0.4) → tick the checklist.
 
+## Session — 2026-09-24, QA fixes batch (Joshua's screenshot review)
+
+Joshua's five-item QA report from Sep 23 screenshots; each fixed one at a
+time, verified green before the next. Archive:
+`~/workspace/your_files/sniffmysite-qa-fixes-2026-09-24.zip`.
+
+1. **Leaderboard logos** (`apps/vapor/src/components/SiteLogo.tsx`):
+   fallback chain — DuckDuckGo icon service first, then Google's favicon
+   service, then the monogram tile. No broken-image flash; recycled rows
+   reset the cycle when the domain changes. Frontend `tsc` green.
+2. **Movers page** (`packages/api/src/lib/movers.ts`,
+   `apps/vapor/src/pages/MoversPage.tsx`, `apps/vapor/src/lib/api.ts`):
+   zero-delta hosts (re-sniffed to the exact same score — normal, the nose
+   is deterministic) now ride along as `steady` and render as a "Held
+   their ground" section instead of leaving two apparently empty lists.
+   Added tests + updated the existing zero-delta test and the route shape
+   test. API suite **440/440** green, frontend `tsc` green.
+3. **Pricing page** (`apps/vapor/src/pages/PricingPage.tsx`): rebuilt
+   around the ONE automated product ($5 Priority Re-scan). Removed the
+   $29 manual audit row, the banner self-checkout form, and all stale
+   Lemon Squeezy copy. Sponsorships now an honest "banners open after
+   launch" note (no invented contact). `tsc` green.
+4. **Launch page** (`apps/vapor/src/pages/LaunchPage.tsx`): roughly half
+   the length — three tight steps, the URL form, ONE template card with
+   Product Hunt / Hacker News / X tabs, and three short FAQs. `tsc` green.
+5. **Mobile nav** (`apps/vapor/src/components/Navbar.tsx`): the icon-only
+   hamburger is now a labeled **Menu** / **Close** button (44px, same
+   stacked panel). `tsc` green.
+- Final check: `npm run build` (vapor) green; API suite re-run 440/440.
+- **Not done:** no deployment (deferred per Joshua, Sep 22); local repo
+  still not a git repo — Joshua pushes via GitHub CLI himself; fresh zip
+  packed (above) for his deploy steps.
+
 ## Session — 2026-09-20, overnight build (subagent)
 
 ### Scaffold (pre-Task 2)
