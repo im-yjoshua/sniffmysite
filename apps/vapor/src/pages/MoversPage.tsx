@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   Copy,
   Check,
-  Minus,
   TrendingDown,
   TrendingUp,
   FlaskConical,
@@ -24,8 +23,6 @@ import { SiteLogo } from '../components/SiteLogo';
  * "Climbing" = biggest same-test score gains; "Face-plants" = biggest
  * drops. Every row is a real re-sniff — the API never compares across
  * algo versions, so a formula change can't pose as a product move.
- * "Held their ground" = re-sniffed to the exact same score (the nose
- * is deterministic, so an unchanged page scores identically twice).
  *
  * Thin windows render the API's honest "early days" note; empty sides
  * get a plain line, never padded rows. The "Copy the roundup" button
@@ -144,66 +141,6 @@ function MoverSection({
           ))}
         </ol>
       )}
-    </section>
-  );
-}
-
-/**
- * Re-sniffed in the window, same score both times. The nose is
- * deterministic — an unchanged page scores exactly the same — so this
- * is real activity with no move. Shown instead of a second empty list.
- */
-function SteadySection({ rows }: { rows: ApiMoverRow[] }) {
-  if (rows.length === 0) return null;
-  return (
-    <section aria-label="Held their ground" className="mt-12">
-      <h2 className="flex items-center gap-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
-        <span className="text-ink-soft" aria-hidden="true">
-          <Minus className="h-8 w-8" strokeWidth={2.25} />
-        </span>
-        Held their ground
-      </h2>
-      <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
-        Re-sniffed this week, same score twice. The nose gives an
-        unchanged page the exact same score — no move, no story, still
-        honest work.
-      </p>
-      <ol className="mt-6 border-t border-hairline">
-        {rows.map((row, i) => (
-          <li key={row.domain}>
-            <Link
-              to={rowLink(row)}
-              title={`Open the ${row.domain} report`}
-              className="tap-target group flex w-full items-center gap-3 border-b border-hairline py-4 transition-transform duration-150 hover:-translate-y-px focus:-translate-y-px sm:gap-4"
-            >
-              <span className="w-10 shrink-0 font-display text-lg font-bold tabular-nums text-ink-faint">
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <SiteLogo domain={row.domain} size="md" />
-              <span className="min-w-0 flex-1">
-                <span
-                  className="block truncate font-display text-lg font-bold leading-tight tracking-tight"
-                  title={row.domain}
-                >
-                  {row.domain}
-                </span>
-                <span className="block truncate font-data text-sm tabular-nums text-ink-faint">
-                  {row.old_score} → {row.new_score}
-                </span>
-              </span>
-              <span
-                className="shrink-0 font-data text-xl font-bold tabular-nums text-ink-faint"
-                title="Score change: 0 — the page scored exactly the same twice"
-              >
-                ±0
-              </span>
-              <span className="hidden w-44 shrink-0 items-center justify-end gap-3 md:flex">
-                <RosetteBadge tier={row.tier} size={44} />
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }
@@ -357,7 +294,6 @@ export function MoversPage() {
             up={false}
             emptyLine="No face-plants in this window. Either the internet got honest, or nobody got re-sniffed."
           />
-          <SteadySection rows={data.steady} />
           <p className="mt-10 text-[13px] uppercase tracking-[0.14em] text-ink-faint">
             {data.hosts_tracked}{' '}
             {data.hosts_tracked === 1 ? 'site' : 'sites'} with two sniffs{' '}

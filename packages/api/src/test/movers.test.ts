@@ -172,22 +172,13 @@ describe('getMovers', () => {
     );
   });
 
-  it('zero-delta hosts count as tracked and land in steady ("Held their ground")', () => {
+  it('zero-delta hosts count as tracked but appear on neither list', () => {
     scan('flat.test', 70, 3);
     scan('flat.test', 70, 1);
-    scan('flat2.test', 85, 3);
-    scan('flat2.test', 85, 1);
     const m = getMovers('7d', NOW);
-    assert.equal(m.hosts_tracked, 2);
+    assert.equal(m.hosts_tracked, 1);
     assert.equal(m.gainers.length, 0);
     assert.equal(m.losers.length, 0);
-    assert.equal(m.steady.length, 2);
-    // Highest latest score first.
-    assert.equal(m.steady[0].domain, 'flat2.test');
-    assert.equal(m.steady[0].delta, 0);
-    assert.equal(m.steady[0].old_score, 85);
-    assert.equal(m.steady[0].new_score, 85);
-    assert.equal(m.steady[1].domain, 'flat.test');
   });
 
   it('thin window → honest note; full window → no note', () => {
@@ -253,7 +244,6 @@ describe('GET /api/vapor/movers', () => {
         generated_at: string;
         gainers: unknown[];
         losers: unknown[];
-        steady: unknown[];
         hosts_tracked: number;
         note?: string;
       };
@@ -261,7 +251,6 @@ describe('GET /api/vapor/movers', () => {
       assert.ok(body.generated_at);
       assert.ok(Array.isArray(body.gainers));
       assert.ok(Array.isArray(body.losers));
-      assert.ok(Array.isArray(body.steady));
       assert.equal(typeof body.hosts_tracked, 'number');
       assert.ok(body.note, 'empty journal → thin note');
     } finally {

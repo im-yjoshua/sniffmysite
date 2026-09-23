@@ -18,10 +18,9 @@ import { Ticker } from './Ticker';
  *
  * Row 2 (the playful part): the latest-sniffs ticker. Sticky top-0 with a
  * paper background so the CTA is always one tap away; the ticker is
- * slimmed down on small screens. Narrow screens get a labeled Menu
- * button (44px, aria-expanded, icon + the word "Menu" — an icon alone
- * doesn't read as navigation) opening a stacked panel instead of the
- * old sideways-scroll nav.
+ * slimmed down on small screens. Narrow screens get a hamburger (44px,
+ * aria-expanded) opening a stacked panel instead of the old
+ * sideways-scroll nav.
  */
 const LINKS = [
   { to: '/#sniff', label: 'Sniff' },
@@ -153,17 +152,17 @@ export function Navbar() {
             <SniffCta className="hidden md:inline-flex" />
             <button
               type="button"
-              className="tap-target flex h-11 items-center justify-center gap-2 border border-ink px-4 font-data text-sm font-bold uppercase tracking-[0.14em] text-ink md:hidden"
+              className="tap-target flex h-11 w-11 items-center justify-center text-ink md:hidden"
               aria-expanded={open}
               aria-controls="mobile-nav"
+              aria-label={open ? 'Close menu' : 'Open menu'}
               onClick={() => setOpen((v) => !v)}
             >
               {open ? (
-                <X className="h-5 w-5" aria-hidden="true" />
+                <X className="h-6 w-6" aria-hidden="true" />
               ) : (
-                <Menu className="h-5 w-5" aria-hidden="true" />
+                <Menu className="h-6 w-6" aria-hidden="true" />
               )}
-              {open ? 'Close' : 'Menu'}
             </button>
           </div>
         </div>

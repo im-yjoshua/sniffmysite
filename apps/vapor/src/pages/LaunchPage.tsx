@@ -3,10 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Check, Copy, Rocket } from 'lucide-react';
 
 /**
- * The roast-my-launch kit: launch days are sniff events.
- * "Launching? Get publicly sniffed." — three short steps, a URL box
- * that seeds the hero scan box on `/`, ONE launch-post template with
- * channel tabs (Product Hunt / Hacker News / X), and two honest FAQs.
+ * The roast-my-launch kit (§growth-5): launch days are sniff events.
+ * "Launching? Get publicly sniffed." — three steps in plain language,
+ * a URL box that seeds the hero scan box on `/`, copy-paste launch-post
+ * templates for Product Hunt / Hacker News / X, and an honest FAQ.
  *
  * No API surface: the CTA just navigates to `/#sniff` carrying the URL
  * in location state, which LandingPage feeds into the existing ScanBox
@@ -17,18 +17,18 @@ import { Check, Copy, Rocket } from 'lucide-react';
 const STEPS = [
   {
     n: '1',
-    title: 'Paste your launch URL',
-    body: 'Your homepage or landing page. If it smells, better to find out here than on launch day.',
+    title: 'Paste your launch URL below',
+    body: 'The page you are launching with — your homepage or landing page. If it smells, better to find out here than on launch day.',
   },
   {
     n: '2',
-    title: 'We sniff it live, in public',
-    body: 'The full six-check test. Your score goes public the second it lands — no secret do-overs.',
+    title: 'We sniff it live, in front of everyone',
+    body: 'The full six-check test, same as always. Your score goes public the second it lands. No do-overs in secret.',
   },
   {
     n: '3',
-    title: 'Post your score',
-    body: 'Copy the template below, fill in the blanks, tag a rival if you are brave.',
+    title: 'Post your score — dare the internet to beat it',
+    body: 'Grab a template below, fill in the blanks, and tag a rival if you are brave. A public score is a launch post that writes itself.',
   },
 ] as const;
 
@@ -40,9 +40,9 @@ interface Template {
 }
 
 /**
- * One launch post, three channel flavors. Blanks the founder fills:
- * {PRODUCT}, {ONE-LINER}, {SCORE}, {LINK}. Confident, self-roasting,
- * lab voice — roast the page, never the people.
+ * Copy-paste launch posts. Blanks the founder fills: {PRODUCT},
+ * {ONE-LINER}, {SCORE}, {LINK}. Confident, self-roasting, lab voice —
+ * roast the page, never the people.
  */
 const TEMPLATES: Template[] = [
   {
@@ -90,7 +90,7 @@ const FAQS = [
   },
   {
     q: 'Does paying change my score?',
-    a: 'Never. Money buys re-scans, not points — a paid re-sniff runs the exact same test as a free one. If cash could move a score, the whole board would be meaningless.',
+    a: 'Never. Money buys re-scans and audits, not points — a paid re-sniff runs the exact same test as a free one. If cash could move a score, the whole board would be meaningless.',
     link: { to: '/pricing', label: 'See what money actually buys' },
   },
   {
@@ -105,14 +105,52 @@ function withScheme(raw: string): string {
   return /^https?:\/\//i.test(cleaned) ? cleaned : `https://${cleaned}`;
 }
 
+function TemplateCard({
+  template,
+  copied,
+  onCopy,
+}: {
+  template: Template;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <section
+      aria-label={`${template.channel} template`}
+      className="border-t border-hairline py-8"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h3 className="font-display text-2xl font-bold tracking-tight">
+          {template.channel}
+        </h3>
+        <button
+          type="button"
+          onClick={onCopy}
+          className="tap-target inline-flex items-center gap-2 border border-ink bg-paper px-5 py-3 font-data text-sm font-bold uppercase tracking-wider text-ink transition-colors hover:bg-ink hover:text-paper"
+        >
+          {copied ? (
+            <Check className="h-5 w-5" strokeWidth={2.25} />
+          ) : (
+            <Copy className="h-5 w-5" strokeWidth={2.25} />
+          )}
+          {copied ? 'Copied' : 'Copy template'}
+        </button>
+      </div>
+      <p className="mt-2 text-[13px] uppercase tracking-[0.14em] text-ink-faint">
+        {template.hint}
+      </p>
+      <pre className="mt-4 overflow-x-auto whitespace-pre-wrap border border-hairline bg-paper p-5 font-data text-base leading-relaxed text-ink-soft">
+        {template.text}
+      </pre>
+    </section>
+  );
+}
+
 export function LaunchPage() {
   const navigate = useNavigate();
   const [url, setUrl] = useState('');
   const [formError, setFormError] = useState('');
-  const [tab, setTab] = useState(TEMPLATES[0].key);
-  const [copied, setCopied] = useState(false);
-
-  const active = TEMPLATES.find((t) => t.key === tab) ?? TEMPLATES[0];
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,11 +168,11 @@ export function LaunchPage() {
     navigate('/#sniff', { state: { seedUrl: withScheme(raw) } });
   };
 
-  const copyTemplate = async () => {
+  const copyTemplate = async (t: Template) => {
     try {
-      await navigator.clipboard.writeText(active.text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(t.text);
+      setCopiedKey(t.key);
+      window.setTimeout(() => setCopiedKey(null), 2000);
     } catch {
       // Clipboard blocked — the button stays, the user can retry.
     }
@@ -186,6 +224,10 @@ export function LaunchPage() {
           <Rocket className="h-8 w-8 text-hazard" strokeWidth={2.25} />
           Step one starts here
         </h2>
+        <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-soft">
+          Paste your launch URL. We will drop it into the sniff box on the
+          front page — you press the button, the nose does the rest.
+        </p>
         <form onSubmit={onSubmit} className="mt-6 max-w-xl">
           <label
             htmlFor="launch-url"
@@ -220,58 +262,27 @@ export function LaunchPage() {
         </form>
       </section>
 
-      {/* One template, three channel flavors. */}
-      <section aria-label="Launch post template" className="mt-12">
+      {/* Copy-paste launch posts, one per channel. */}
+      <section aria-label="Launch post templates" className="mt-12">
         <p className="eyebrow text-ink-faint">Step three, done for you</p>
         <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
           Post your score<span className="text-hazard">.</span>
         </h2>
         <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-soft">
-          Pick your channel, fill in the blanks after your sniff lands —
-          product name, one-liner, score — then post.
+          Fill in the blanks after your sniff lands — your product name,
+          your one-liner, your score — then post. Tag a rival if you are
+          brave.
         </p>
-        <div
-          role="group"
-          aria-label="Channel"
-          className="mt-6 inline-flex border border-ink"
-        >
+        <div className="mt-4">
           {TEMPLATES.map((t) => (
-            <button
+            <TemplateCard
               key={t.key}
-              type="button"
-              onClick={() => {
-                setTab(t.key);
-                setCopied(false);
-              }}
-              aria-pressed={tab === t.key}
-              className={`tap-target px-5 py-3 font-data text-sm font-bold uppercase tracking-wider transition-colors ${
-                tab === t.key
-                  ? 'bg-ink text-paper'
-                  : 'bg-paper text-ink-soft hover:text-ink'
-              }`}
-            >
-              {t.channel}
-            </button>
+              template={t}
+              copied={copiedKey === t.key}
+              onCopy={() => void copyTemplate(t)}
+            />
           ))}
         </div>
-        <p className="mt-3 text-[13px] uppercase tracking-[0.14em] text-ink-faint">
-          {active.hint}
-        </p>
-        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap border border-hairline bg-paper p-5 font-data text-base leading-relaxed text-ink-soft">
-          {active.text}
-        </pre>
-        <button
-          type="button"
-          onClick={() => void copyTemplate()}
-          className="tap-target mt-4 inline-flex items-center gap-2 border border-ink bg-paper px-5 py-3 font-data text-sm font-bold uppercase tracking-wider text-ink transition-colors hover:bg-ink hover:text-paper"
-        >
-          {copied ? (
-            <Check className="h-5 w-5" strokeWidth={2.25} />
-          ) : (
-            <Copy className="h-5 w-5" strokeWidth={2.25} />
-          )}
-          {copied ? 'Copied' : 'Copy template'}
-        </button>
       </section>
 
       {/* Honest answers, before anyone has to ask. */}

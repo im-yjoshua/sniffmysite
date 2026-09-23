@@ -3,9 +3,7 @@
  *
  * "Who gained, who face-planted this week": among hosts with ≥2 scans in
  * the trailing window, the biggest sniff-score gainers ("Climbing") and
- * losers ("Face-plants"), ranked by |delta|. Hosts re-sniffed to the exact
- * same score ride along as `steady` ("Held their ground") — real activity,
- * no move.
+ * losers ("Face-plants"), ranked by |delta|.
  *
  * The same-algo-version rule from Most Improved applies: a host's old and
  * new scores must come from scans with the same `algo_version` (anchored
@@ -70,13 +68,6 @@ export interface MoversResult {
   generated_at: string;
   gainers: MoverRow[];
   losers: MoverRow[];
-  /**
-   * Re-sniffed in the window, same score twice. The nose is
-   * deterministic — an unchanged page scores exactly the same — so
-   * these are real activity with no move. Shown on the page as "Held
-   * their ground" instead of being silently dropped.
-   */
-  steady: MoverRow[];
   /** Hosts with ≥2 same-version scans inside the window. */
   hosts_tracked: number;
   /** Present when the window is thin — plain words, never padded rows. */
@@ -122,23 +113,16 @@ export function getMovers(
     });
   }
 
-  // Zero-delta hosts count as tracked (they have two sniffs). They are
-  // not movers — no move, no story — but they are real re-sniff activity,
-  // so they ride along as `steady` ("Held their ground") instead of being
-  // silently dropped. Without this the board looks broken every week the
-  // nose agrees with itself (which, being deterministic, is most weeks).
-  const movers = qualified.filter((r) => r.delta !== 0);
-  const steady = qualified
-    .filter((r) => r.delta === 0)
-    .sort((a, b) => b.new_score - a.new_score || (a.domain < b.domain ? -1 : 1))
-    .slice(0, MOVERS_PER_SIDE);
+  // Zero-delta hosts count as tracked (they have two sniffs) but appear
+  // on neither list — no move, no story.
+  const tracked = qualified.filter((r) => r.delta !== 0);
   const byAbsDelta = (a: MoverRow, b: MoverRow) =>
     Math.abs(b.delta) - Math.abs(a.delta);
-  const gainers = movers
+  const gainers = tracked
     .filter((r) => r.delta > 0)
     .sort(byAbsDelta)
     .slice(0, MOVERS_PER_SIDE);
-  const losers = movers
+  const losers = tracked
     .filter((r) => r.delta < 0)
     .sort(byAbsDelta)
     .slice(0, MOVERS_PER_SIDE);
@@ -148,7 +132,6 @@ export function getMovers(
     generated_at: new Date(now).toISOString(),
     gainers,
     losers,
-    steady,
     hosts_tracked: qualified.length,
   };
   if (qualified.length < MOVERS_THIN_THRESHOLD) {
