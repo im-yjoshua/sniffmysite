@@ -1,0 +1,460 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   VAPORRANK — "The Inspection Lab" design system (§2.7)
+   Concept: a product-safety inspection lab that tests startups like toasters.
+   Clinical, deadpan, brutal. Tokens are the ONLY source of color/type truth —
+   no ad-hoc colors anywhere in components.
+   ========================================================================== */
+
+@theme {
+  /* Surfaces */
+  --color-paper: #faf8f4; /* page background — warm paper off-white */
+  --color-ink: #141310; /* primary ink — near-black, warm */
+  --color-ink-soft: #4e4a41; /* secondary text */
+  --color-ink-faint: #8a8478; /* tertiary / muted text, placeholders */
+
+  /* The one accent. Hazard orange is reserved EXCLUSIVELY for
+     scores, verdict stamps, and CTAs (§2.7). Nowhere else. */
+  --color-hazard: #ff4d00;
+  --color-hazard-deep: #d63f00; /* CTA hover state */
+  --color-hazard-ink: #c23a00; /* hazard, deepened for stamp text/borders —
+     ~5:1 on paper (the vivid #ff4d00 only manages ~3:1). Same hue family,
+     same meaning: vapor. */
+
+  /* Gold — the prize. Reserved for the #1 spot on the Most Real board
+     and the CERTIFIED REAL rosette, nowhere else. */
+  --color-gold: #b98a1d;
+
+  /* Rosette tier colors — the SVG medals read these, so they remap with
+     the theme instead of glowing wrong on dark paper. */
+  --color-rosette-gold: #b98a1d; /* CERTIFIED REAL */
+  --color-rosette-slate: #6e7681; /* ALMOST REAL */
+  --color-rosette-sus: #d97a1f; /* SUS */
+  --color-rosette-vibes: #ff4d00; /* JUST VIBES */
+  --color-rosette-fake: #9a958a; /* CERTIFIED FAKE */
+  --color-rosette-disc: #f6f1e7; /* medal inner disc */
+
+  /* Structure */
+  --color-hairline: #e5e1d8; /* 1px rules that do the layout work */
+
+  /* Type */
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* --- Dark theme ----------------------------------------------------------
+   The lab after hours. The whole site remaps through the design tokens:
+   .dark redefines the CSS variables on <html>, and every bg-paper /
+   text-ink / border-hairline utility follows automatically — new
+   components inherit dark mode for free. NEVER add per-component
+   dark: variants; fix the token, not the component.
+   Palette notes: warm near-black paper, paper-white ink (keeps the
+   90-year-old readability floor), hazard nudged brighter so stamps and
+   CTAs still punch on a dark ground. Still zero gradients.
+   ------------------------------------------------------------------------ */
+.dark {
+  --color-paper: #141310; /* page background — the lab with the lights off */
+  --color-ink: #f2ede1; /* primary text — warm paper-white, ~14:1 */
+  --color-ink-soft: #b9b2a2; /* secondary text */
+  --color-ink-faint: #847d6b; /* tertiary / muted text, placeholders */
+
+  --color-hazard: #ff5c1a; /* brighter so CTAs/bars punch on dark */
+  --color-hazard-deep: #e04a10; /* CTA hover state */
+  --color-hazard-ink: #ff8a4d; /* stamp text/borders — ~5:1 on dark paper */
+
+  --color-gold: #d9a93c; /* the prize — still reads on dark, gold spot only */
+
+  --color-hairline: #2e2a23; /* 1px rules, visible but quiet on dark */
+
+  /* Rosette medals: brightened to read on dark paper. */
+  --color-rosette-gold: #d9a93c;
+  --color-rosette-slate: #9aa1ab;
+  --color-rosette-sus: #e8933c;
+  --color-rosette-vibes: #ff5c1a;
+  --color-rosette-fake: #a8a39a;
+  --color-rosette-disc: #201c16; /* inner disc — lifted a step off dark paper */
+}
+
+/* Smooth glide on toggle: the theme switch adds .theme-anim to <html>
+   for ~650ms so every surface eases between palettes instead of
+   snapping. Hover transitions (transition-colors etc.) are untouched —
+   this only adds paint-property easing during the theme switch. */
+.theme-anim,
+.theme-anim *,
+.theme-anim *::before,
+.theme-anim *::after {
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease,
+    border-color 0.5s ease,
+    fill 0.5s ease,
+    stroke 0.5s ease,
+    box-shadow 0.5s ease !important;
+}
+
+/* --- Base ---------------------------------------------------------------
+   Readability floor (§2.13 readability pass, Sep 2026):
+   - Body text is 18px with roomy 1.6 line-height. A 90-year-old must be
+     able to read every letter; a 5th grader must get every word.
+   - No FUNCTIONAL text (labels, buttons, links, metadata a user needs)
+     may go below 14px (text-sm). Decorative eyebrow micro-labels may use
+     13px (text-[13px]) — nothing smaller exists anywhere in the UI.
+   - All interactive targets are at least 44px tall for thumbs of all ages.
+   ------------------------------------------------------------------------ */
+
+/* Base type: 18px floor, generous line-height — readable for everyone. */
+
+/* A 44px minimum tap target for every real control. Apply alongside the
+   existing padding utilities on buttons/links/inputs. */
+.tap-target {
+  min-height: 44px;
+}
+
+/* Decorative eyebrow micro-label — the SMALLEST type on the site (13px).
+   For decorative section eyebrows only. Anything a user must actually read
+   (buttons, links, form labels, metadata) is at least 14px (text-sm). */
+.eyebrow {
+  font-family: var(--font-data);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  line-height: 1.6;
+}
+
+/* Every interactive element gets the pointer cursor. Tailwind v4 doesn't
+   default this for buttons/links; the lab likes its affordances obvious. */
+button,
+a,
+[role="button"],
+[role="tab"],
+[role="link"],
+summary,
+label[for],
+input[type="submit"],
+input[type="button"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 1.125rem; /* 18px floor — see the readability note above */
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-hazard);
+  color: var(--color-paper);
+}
+
+/* Visible, on-brand keyboard focus — never remove outlines without this. */
+:focus-visible {
+  outline: 2px solid var(--color-hazard);
+  outline-offset: 2px;
+}
+
+/* --- The rubber stamp ----------------------------------------------------
+   Rotated, triple-ringed verdict stamp with worn ink edges. Stamps in with
+   a 400ms thud: overshoot scale + rotation settle. Used for tier verdicts.
+   It is deliberately the loudest thing on the page.
+   ------------------------------------------------------------------------ */
+
+:root {
+  /* Worn-ink mask: an SVG turbulence speckle, tiled. Mostly opaque with
+     eaten-away edges — ink never coats a stamp perfectly. Subtle by design:
+     the letters must stay readable at every size. */
+  --stamp-grunge: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.4 0.4 0.4 0 0.28'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.stamp {
+  display: inline-block;
+  font-family: var(--font-data);
+  font-weight: 700;
+  font-size: 1rem; /* 18px floor — a stamp you can't read is a rumor */
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--color-hazard-ink);
+  background-color: var(--color-paper);
+  border: 5px solid currentColor;
+  outline: 2px solid currentColor;
+  outline-offset: -13px;
+  /* A real stamp never lands perfectly square. */
+  border-radius: 7px 3px 8px 4px / 4px 8px 3px 7px;
+  padding: 0.72em 1.05em 0.62em;
+  transform: rotate(-12deg);
+  /* Pressed hard: the ink thuds into the paper. */
+  box-shadow:
+    3px 4px 0 rgba(20, 19, 16, 0.22),
+    0 0 0 1px rgba(20, 19, 16, 0.08);
+  -webkit-mask-image: var(--stamp-grunge);
+  mask-image: var(--stamp-grunge);
+  -webkit-mask-size: 240px;
+  mask-size: 240px;
+  /* Ink soaks into paper: fatten the glyphs a hair. */
+  text-shadow: 0 0 1px currentColor;
+  user-select: none;
+}
+
+.stamp-ink {
+  color: var(--color-ink);
+}
+
+.stamp-sm {
+  font-size: 0.8rem; /* 14.4px — the readability floor, even in table rows */
+  letter-spacing: 0.14em;
+  border-width: 4px;
+  outline-offset: -11px;
+  padding: 0.6em 0.85em 0.52em;
+  box-shadow:
+    2px 3px 0 rgba(20, 19, 16, 0.22),
+    0 0 0 1px rgba(20, 19, 16, 0.08);
+}
+
+.stamp-lg {
+  /* Fluid: full slam on desktop, shrinks on phones so the longest tier
+     ("PURE UNCUT VAPOR") never causes horizontal scrolling. */
+  font-size: clamp(1.15rem, 6vw, 1.5rem);
+  letter-spacing: 0.18em;
+  border-width: 6px;
+  outline-offset: -15px;
+  padding: 0.7em 1.1em 0.6em;
+  box-shadow:
+    4px 5px 0 rgba(20, 19, 16, 0.22),
+    0 0 0 1px rgba(20, 19, 16, 0.08);
+}
+
+/* PURE UNCUT VAPOR only: the stamp comes down FILLED — the lab's loudest
+   mark, reserved for the worst offenders. Paper text on hazard-ink keeps
+   the ~5:1 contrast of the outline stamps. */
+.stamp-solid {
+  background-color: var(--color-hazard-ink);
+  border-color: var(--color-hazard-ink);
+  outline-color: var(--color-paper);
+  color: var(--color-paper);
+  box-shadow:
+    3px 4px 0 rgba(20, 19, 16, 0.3),
+    0 0 0 1px rgba(20, 19, 16, 0.12);
+}
+
+.animate-stamp-in {
+  animation: stamp-in 400ms cubic-bezier(0.2, 2.1, 0.36, 1) both;
+}
+
+/* Dark mode: ink-black shadows are invisible on dark paper, so the
+   stamp's pressed-thud offset becomes a warm light edge instead —
+   same sizes, same intent, readable on the lab's dark bench. */
+.dark .stamp {
+  box-shadow:
+    3px 4px 0 rgba(242, 237, 225, 0.14),
+    0 0 0 1px rgba(242, 237, 225, 0.07);
+}
+
+.dark .stamp-sm {
+  box-shadow:
+    2px 3px 0 rgba(242, 237, 225, 0.14),
+    0 0 0 1px rgba(242, 237, 225, 0.07);
+}
+
+.dark .stamp-lg {
+  box-shadow:
+    4px 5px 0 rgba(242, 237, 225, 0.14),
+    0 0 0 1px rgba(242, 237, 225, 0.07);
+}
+
+.dark .stamp-solid {
+  box-shadow:
+    3px 4px 0 rgba(242, 237, 225, 0.2),
+    0 0 0 1px rgba(242, 237, 225, 0.09);
+}
+
+@keyframes stamp-in {
+  0% {
+    opacity: 0;
+    transform: scale(2.6) rotate(-20deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.92) rotate(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-12deg);
+  }
+}
+
+/* --- Marquee ticker ------------------------------------------------------
+   Seamless loop: the track holds two copies of the list and translates -50%.
+   ------------------------------------------------------------------------ */
+
+.marquee {
+  overflow: hidden;
+}
+
+.marquee-track {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  animation: marquee 38s linear infinite;
+  will-change: transform;
+}
+
+.marquee:hover .marquee-track,
+.marquee:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* --- Leaderboard row entrance ---------------------------------------------
+   Staggered fade-rise. Delay is set inline per row index.
+   ------------------------------------------------------------------------ */
+
+.row-in {
+  opacity: 0;
+  animation: row-in 420ms ease-out forwards;
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Score bars ----------------------------------------------------------- */
+
+.score-bar-fill {
+  transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- Reduced motion -------------------------------------------------------
+   Respect users who ask for it: kill the choreography, keep the content.
+   ------------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .animate-stamp-in,
+  .animate-spin,
+  .animate-pulse,
+  .row-in,
+  .theme-anim,
+  .theme-anim *,
+  .theme-anim *::before,
+  .theme-anim *::after {
+    animation: none;
+    transition: none;
+  }
+  /* The ticker becomes a static, non-scrolling list: wrap instead of
+     clipping, and hide the duplicated half (aria-hidden in the markup). */
+  .marquee {
+    overflow-x: auto;
+  }
+  .marquee-track {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .marquee-track > [aria-hidden='true'] {
+    display: none;
+  }
+  .row-in {
+    opacity: 1;
+  }
+  .animate-stamp-in {
+    opacity: 1;
+  }
+  .score-bar-fill {
+    transition: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* --- Sponsored banner slots ------------------------------------------------
+   Class names stay neutral (.sponsor-slot / .sponsor-frame) — nothing
+   containing "ad". The banner is always labeled "Sponsored" in the markup.
+   ------------------------------------------------------------------------ */
+
+.sponsor-slot {
+  border-top: 1px solid var(--color-hairline);
+  border-bottom: 1px solid var(--color-hairline);
+  background: var(--color-paper);
+}
+
+.sponsor-slot-inner {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* The creative frame: max-height constrained, aspect preserved. */
+.sponsor-frame {
+  display: inline-block;
+  max-width: 100%;
+  border: 1px solid var(--color-hairline);
+  background: #ffffff;
+  padding: 0.5rem;
+}
+
+.sponsor-frame img {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: 160px;
+  margin: 0 auto;
+}
+
+/* Slot B empty state: one quiet line, no box. */
+.sponsor-invite {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+
+/* Admin approval page: creative preview, constrained. */
+.creative-preview {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: 120px;
+  border: 1px solid var(--color-hairline);
+  background: #ffffff;
+}

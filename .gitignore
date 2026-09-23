@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# builds
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# env — NEVER commit real keys. .env.example is the template.
+.env
+.env.local
+.env.*.local
+
+# logs / OS
+npm-debug.log*
+*.log
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+*.swp
