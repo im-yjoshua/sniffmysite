@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   BURNRATE.LOL — "After-Hours Trading Floor" design system (§3.7)
+   Concept: a Bloomberg terminal that gave up and started a bonfire.
+   Dark, confident, numbers-first.
+
+   Tokens are the ONLY source of color/type truth — no ad-hoc colors
+   anywhere in components. Ember is used sparingly: burn figures, the #1
+   crown, and CTAs. Everything else lives in ash and off-white.
+   ========================================================================== */
+
+@theme {
+  /* Surfaces */
+  --color-bg: #0b0b0c; /* page background — near-black */
+  --color-surface: #131315; /* raised surface */
+
+  /* Ink */
+  --color-text: #f5f1e8; /* primary text — warm off-white */
+  --color-ash: #8a877f; /* secondary / muted text */
+
+  /* The one accent. Ember orange is reserved EXCLUSIVELY for burn figures,
+     the #1 crown, verified flames, and CTAs (§3.7). Nowhere else. */
+  --color-ember: #ff5c1a;
+  --color-ember-deep: #d64a12; /* CTA hover state */
+  --color-ember-dim: #7a2d10; /* hairline-grade ember for #1 row edges */
+
+  /* Structure — thin 1px dividers do the layout work, not boxes-in-boxes */
+  --color-divider: #1f1f22;
+
+  /* Type */
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-editorial: "Instrument Serif", Georgia, serif;
+}
+
+/* --- Base --------------------------------------------------------------- */
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-ember);
+  color: var(--color-bg);
+}
+
+/* Visible, on-brand keyboard focus — never remove outlines without this. */
+:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 2px;
+}
+
+/* Tabular figures everywhere money appears — columns must align. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- The #1 ember glow ---------------------------------------------------
+   The crowned row's money figures glow faintly ember (§3.7).
+   Reserved for the #1 spot only — nowhere else glows.
+   ------------------------------------------------------------------------ */
+
+.money-glow {
+  color: var(--color-ember);
+  text-shadow: 0 0 18px rgb(255 92 26 / 0.45);
+}
+
+/* --- Ticker tape ---------------------------------------------------------
+   Top-of-page marquee: "money incinerated today" (§3.3). The track holds two
+   copies of the list and translates -50% for a seamless loop.
+   ------------------------------------------------------------------------ */
+
+.tape {
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-divider);
+  background-color: var(--color-bg);
+}
+
+.tape-track {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  animation: tape-scroll 42s linear infinite;
+  will-change: transform;
+}
+
+.tape:hover .tape-track {
+  animation-play-state: paused;
+}
+
+@keyframes tape-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* --- Count reveal ---------------------------------------------------------
+   Money figures tick in on load (§3.7). A short rise + fade keeps it
+   restrained — it's money, not a slot machine.
+   ------------------------------------------------------------------------ */
+
+.figure-in {
+  opacity: 0;
+  animation: figure-in 600ms ease-out forwards;
+}
+
+@keyframes figure-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Leaderboard row entrance ---------------------------------------------
+   Staggered fade-rise. Delay is set inline per row index.
+   ------------------------------------------------------------------------ */
+
+.row-in {
+  opacity: 0;
+  animation: row-in 420ms ease-out forwards;
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Auction countdown pulse ----------------------------------------------
+   Gentle pulse when the spotlight auction has under 1h left (§3.7).
+   ------------------------------------------------------------------------ */
+
+.pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* --- Reduced motion -------------------------------------------------------
+   Respect users who ask for it: kill the choreography, keep the content.
+   ------------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .tape-track,
+  .figure-in,
+  .row-in,
+  .pulse-soft {
+    animation: none;
+  }
+  .figure-in,
+  .row-in {
+    opacity: 1;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}

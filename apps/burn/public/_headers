@@ -1,0 +1,49 @@
+# Cloudflare Pages security headers for BurnRate.lol — Task 10 (§1.5).
+#
+# Syntax: a path on its own line, then one "Header-Name: value" per line,
+# indented. `/*` covers every response Pages serves (the SPA shell, static
+# assets, og-default.png). The Express API sets its own headers via helmet()
+# in packages/api/src/index.ts — this file does NOT cover /api/*.
+#
+# DEPLOY-TIME: this ships with connect-src 'self' because every fetch in the
+# app defaults to same-origin (relative /api/burn/… URLs). If
+# VITE_PUBLIC_API_BASE_URL is ever an absolute cross-origin URL at build
+# time (API on a different host), append that exact origin to connect-src,
+# e.g.  connect-src 'self' https://your-api.onrender.com
+# Verify after deploy: curl -sI https://burn-rate.lol/ | grep -i content-security
+/*
+  # DENY + frame-ancestors 'none': we never embed the app in an iframe.
+  # (X-Frame-Options is the legacy twin for older browsers.)
+  X-Frame-Options: DENY
+  # Blocks MIME-sniffing attacks on served assets.
+  X-Content-Type-Options: nosniff
+  # Outbound links leak at most the origin, never the full page URL.
+  Referrer-Policy: strict-origin-when-cross-origin
+  # HTTPS everywhere, one year, preload-ready.
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  # The app uses no camera, mic, geolocation, or payment-request APIs.
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  # Isolates our browsing context from cross-origin popups.
+  Cross-Origin-Opener-Policy: same-origin
+  # CSP rationale, directive by directive:
+  #   default-src 'self' ......... baseline: nothing loads from anywhere else
+  #   base-uri 'self' ............ no <base> tag hijacking
+  #   object-src 'none' .......... no plugins/embeds, ever
+  #   script-src 'self' + challenges.cloudflare.com
+  #     Vite bundles load from self; TurnstileWidget.tsx injects the Turnstile
+  #     challenge script from challenges.cloudflare.com at runtime. No
+  #     'unsafe-inline': index.html carries no inline <script>.
+  #   style-src 'self' ........... Tailwind bundle only
+  #   style-src-attr 'unsafe-inline'
+  #     React sets style attributes directly (e.g. staggered animation
+  #     delays). Narrower than blanket 'unsafe-inline' (no <style> blocks).
+  #   img-src 'self' data: ....... same-origin PNGs (og-default.png, cards
+  #     served from the same host) plus data: URIs
+  #   font-src 'self' ............ no webfonts today; system stacks only
+  #   connect-src 'self' ......... all runtime fetches are same-origin by
+  #     default — see the DEPLOY-TIME note above before changing this
+  #   frame-src challenges.cloudflare.com
+  #     the Turnstile challenge renders in an iframe from its own CDN
+  #   form-action 'self' ......... forms post to us, never off-site
+  #   frame-ancestors 'none' ..... belt-and-suspenders with X-Frame-Options
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com; form-action 'self'; frame-ancestors 'none'

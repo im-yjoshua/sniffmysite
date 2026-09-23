@@ -1,0 +1,2 @@
+/* SPA fallback for Cloudflare Pages: client-side routes (/list, …) serve index.html. */
+/* /index.html 200

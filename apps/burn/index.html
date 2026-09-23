@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0B0B0C" />
+    <meta
+      name="description"
+      content="BurnRate.lol — revenue is vanity, burn is sanity. The leaderboard that ranks startups by how fast they incinerate money."
+    />
+    <!--
+      Link-preview metadata (Task 6).
+      og:image is a static absolute URL: the canonical domain is the single
+      source of truth (src/config.ts SITE_URL) — no build-time env
+      interpolation exists for index.html, and per-company previews are
+      handled server-side by functions/c/[slug].js for social crawlers.
+      Goes live once burn-rate.lol is purchased (Sep 21).
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BurnRate.lol" />
+    <meta
+      property="og:title"
+      content="BurnRate.lol — Revenue is vanity. Burn is sanity. Probably."
+    />
+    <meta
+      property="og:description"
+      content="The leaderboard that ranks startups by monthly burn. Self-reported. Audited by vibes."
+    />
+    <meta property="og:image" content="https://burn-rate.lol/og-default.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="BurnRate.lol — Revenue is vanity. Burn is sanity. Probably."
+    />
+    <meta
+      name="twitter:description"
+      content="The leaderboard that ranks startups by monthly burn. Self-reported. Audited by vibes."
+    />
+    <meta name="twitter:image" content="https://burn-rate.lol/og-default.png" />
+    <title>BurnRate.lol — Revenue is vanity. Burn is sanity. Probably.</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='10' width='20' height='13' rx='2' fill='none' stroke='%23FF5C1A' stroke-width='2'/%3E%3Cpath d='M22 9c1.4 2.3 3.8 2.9 3.8 5.7a3.8 3.8 0 1 1-7.6 0c0-1.6.9-2.6 1.8-3.6.4 1.1 1.1 1.9 2 1.9-.3-1.6-.3-2.7 0-4z' fill='%23FF5C1A'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@1&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

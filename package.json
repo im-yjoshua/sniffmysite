@@ -1,0 +1,19 @@
+{
+  "description": "VaporRank + BurnRate.lol — satirical pay-to-rank web apps. Shared monorepo: one Express API, two React frontends, one Supabase project.",
+  "engines": {
+    "node": ">=20"
+  },
+  "name": "vaporrank-burnrate",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev:api": "npm run dev --workspace=@vaporrank/api",
+    "dev:vapor": "npm run dev --workspace=@vaporrank/vapor",
+    "dev:burn": "npm run dev --workspace=@burnrate/burn"
+  },
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

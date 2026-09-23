@@ -1,0 +1,29 @@
+{
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@supabase/supabase-js": "^2.116.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^8.0.0"
+  },
+  "description": "Shared Express API for VaporRank + BurnRate.lol. Namespaced routers: /api/vapor/*, /api/burn/*, /api/billing/*.",
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "~5.7.0"
+  },
+  "name": "@vaporrank/api",
+  "private": true,
+  "scripts": {
+    "build": "tsc && npm run copy:fixtures && npm run copy:fonts",
+    "copy:fixtures": "mkdir -p dist/test/fixtures && cp src/test/fixtures/*.html src/test/fixtures/*.json dist/test/fixtures/ 2>/dev/null; true",
+    "copy:fonts": "mkdir -p dist/assets/fonts && cp src/assets/fonts/*.ttf dist/assets/fonts/ 2>/dev/null; true",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "version": "0.1.0"
+}
