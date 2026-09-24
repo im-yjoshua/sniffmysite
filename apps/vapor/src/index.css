@@ -160,6 +160,12 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Safety net against horizontal page scroll on tiny phones: `clip`
+     (not `hidden`) so it never creates a scroll container — the sticky
+     navbar keeps sticking. Individual offenders (footer wordmark, nav
+     row) are fixed at their source; this just guarantees no 320px
+     viewport ever scrolls sideways. */
+  overflow-x: clip;
 }
 
 ::selection {

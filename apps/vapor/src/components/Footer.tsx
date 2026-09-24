@@ -204,7 +204,7 @@ export function Footer() {
         >
           <span
             aria-hidden="true"
-            className="block whitespace-nowrap text-center font-display text-[clamp(2.5rem,10.5vw,9.5rem)] font-bold uppercase leading-none tracking-tight text-ink"
+            className="block whitespace-nowrap text-center font-display text-[clamp(2rem,10vw,9.5rem)] font-bold uppercase leading-none tracking-tight text-ink"
           >
             SniffMySite
           </span>

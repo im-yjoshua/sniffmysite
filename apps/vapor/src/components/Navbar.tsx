@@ -21,7 +21,8 @@ import { Ticker } from './Ticker';
  * slimmed down on small screens. Narrow screens get a labeled Menu
  * button (44px, aria-expanded, icon + the word "Menu" — an icon alone
  * doesn't read as navigation) opening a stacked panel instead of the
- * old sideways-scroll nav.
+ * old sideways-scroll nav. Under 400px the wordmark text hides (icon
+ * stays) so the bar always fits a 320px phone.
  */
 const LINKS = [
   { to: '/#sniff', label: 'Sniff' },
@@ -128,7 +129,7 @@ export function Navbar() {
             <span className="text-ink">
               <Logo className="h-8 w-8" />
             </span>
-            <span className="font-display text-xl font-bold uppercase tracking-tight">
+            <span className="font-display text-xl font-bold uppercase tracking-tight max-[400px]:hidden">
               SniffMySite
             </span>
           </Link>
