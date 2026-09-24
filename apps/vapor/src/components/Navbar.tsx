@@ -92,7 +92,12 @@ function SniffCta({
     <button
       type="button"
       onClick={go}
-      className={`tap-target inline-flex min-h-[44px] items-center justify-center gap-2 bg-hazard px-6 font-data text-sm font-bold uppercase tracking-[0.18em] text-paper transition-colors hover:bg-hazard-deep ${className}`}
+      // NOTE: no display class here on purpose. Callers own the display
+      // (e.g. "hidden md:inline-flex"). This Tailwind v4 build orders
+      // `.hidden` BEFORE `.inline-flex` in the stylesheet, so a hardcoded
+      // inline-flex here would beat a caller's `hidden` and the button
+      // could never be hidden on mobile. Keep display at the call site.
+      className={`tap-target min-h-[44px] items-center justify-center gap-2 bg-hazard px-6 font-data text-sm font-bold uppercase tracking-[0.18em] text-paper transition-colors hover:bg-hazard-deep ${className}`}
     >
       <FlaskConical className="h-5 w-5" strokeWidth={2.25} aria-hidden="true" />
       Sniff a site
@@ -192,7 +197,7 @@ export function Navbar() {
               ))}
               <li className="pt-3">
                 <SniffCta
-                  className="w-full"
+                  className="flex w-full"
                   onNavigate={() => setOpen(false)}
                 />
               </li>
