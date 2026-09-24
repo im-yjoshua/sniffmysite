@@ -41,11 +41,16 @@ export function Leaderboard({ onSniffAgain }: LeaderboardProps) {
 
   return (
     <section id="hall-of-vapor" aria-label="Hall of Vapor leaderboard" className="w-full">
-      <div className="flex items-baseline justify-between gap-3 border-b-2 border-ink pb-3">
-        <h2 className="font-display text-2xl font-bold uppercase tracking-tight">
+      {/* flex-wrap + min-w-0: on a 320px phone the "Top 10 · most real
+          first" eyebrow (~250px, was shrink-0) plus the title exceeded the
+          column, and the hero grid's min-width:auto refused to shrink —
+          the whole page laid out wider than the viewport. Now the eyebrow
+          drops to its own line instead of forcing overflow. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b-2 border-ink pb-3">
+        <h2 className="min-w-0 font-display text-2xl font-bold uppercase tracking-tight">
           Hall of Vapor
         </h2>
-        <span className="eyebrow shrink-0 text-ink-faint">
+        <span className="eyebrow min-w-0 text-ink-faint">
           Top 10 · most real first
         </span>
       </div>

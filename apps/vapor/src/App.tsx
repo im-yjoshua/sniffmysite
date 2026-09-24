@@ -121,7 +121,11 @@ function LandingPage() {
     <main>
       {/* Hero: one-liner + scan box | leaderboard — all above the fold */}
       <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-16 pt-12 md:pt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
-        <div>
+        {/* min-w-0: grid items default to min-width:auto and refuse to
+            shrink below their content — on a 320px phone the leaderboard
+            column forced the whole track (and the h1's wrap width) wider
+            than the viewport. */}
+        <div className="min-w-0">
           <p className="eyebrow text-ink-soft">
             The startup smell test
           </p>
@@ -149,7 +153,7 @@ function LandingPage() {
           </div>
         </div>
 
-        <div className="lg:pt-2">
+        <div className="min-w-0 lg:pt-2">
           <Leaderboard onSniffAgain={(domain) => setScanSeed(domain)} />
         </div>
       </section>
