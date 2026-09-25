@@ -10,7 +10,7 @@ import { PriorityStrip } from '../components/PriorityStrip';
 import { TurnstileWidget } from '../components/TurnstileWidget';
 import { useCountUp } from '../hooks/useCountUp';
 import { SCORE_STORY } from '../lib/score-explainer';
-import { scanUrl, ScanApiError, type ApiScanResult } from '../lib/api';
+import { scanUrl, ScanApiError, API_URL, type ApiScanResult } from '../lib/api';
 import { SNIFF_PHASES } from '../lib/sniff-phases';
 
 type Phase = 'loading' | 'done' | 'error' | 'challenge';
@@ -300,10 +300,13 @@ export function ScanPage() {
   const shown = useCountUp(result?.sniff_score ?? 0, phase === 'done' && result !== null);
 
   /** The share popup POSTs the finished scan to /api/vapor/card (arbitrary
-   * URLs have no profile, so the /og endpoint can't serve them). */
+   * URLs have no profile, so the /og endpoint can't serve them).
+   * NOTE: absolute API_URL — the relative '/api/…' path only works in dev
+   * (Vite proxy). In production the static host would serve index.html
+   * instead of the PNG (silent 200 → broken image). */
   const getCardBlob = useCallback(async (): Promise<Blob> => {
     if (!result) throw new Error('no result yet');
-    const res = await fetch('/api/vapor/card', {
+    const res = await fetch(`${API_URL}/api/vapor/card`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
