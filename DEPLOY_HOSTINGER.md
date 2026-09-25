@@ -6,7 +6,10 @@
 - "Create website → Web App" shows a **lock icon** — click it / open Web Apps to see
   what the lock means (plan restriction vs. just an enable step). Report back.
 
-## Path A — Hostinger runs the Node API (preferred, everything in one place)
+## Path A — Hostinger runs the Node API — ❌ BLOCKED (Sep 26, 2026)
+Web Apps require a Business/Cloud plan upgrade (Rs. 1,459/mo). Joshua's
+Premium plan doesn't include it. NOT worth it — Path B is free.
+Kept below for reference if the plan ever changes.
 
 ### A1. Create the API web app
 1. hPanel → Websites → **Web Apps** → create Node.js app for the API.
