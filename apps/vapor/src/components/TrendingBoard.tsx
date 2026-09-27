@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchTrending, ScanApiError, type ApiTrendingHost } from '../lib/api';
-import { RosetteBadge } from './RosetteBadge';
+import { TierMark } from './seals/TierMark';
 
 /**
  * "Most sniffed" — the trending board (§2.12 depth feature).
@@ -68,7 +68,7 @@ export function TrendingBoard() {
                     <span className="w-8 shrink-0 font-data text-sm font-bold tabular-nums text-ink-faint">
                       {String(i + 1).padStart(2, '0')}
                     </span>
-                    <RosetteBadge tier={h.tier} size={34} />
+                    <TierMark tier={h.tier} size={34} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-data text-base font-bold text-ink transition-colors group-hover:text-hazard">
                         {h.host}

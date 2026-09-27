@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Languages, RotateCcw, Share2 } from 'lucide-react';
-import { RosetteBadge } from '../components/RosetteBadge';
+import { TierMark } from '../components/seals/TierMark';
 import { MetricBars } from '../components/MetricBars';
 import { SharePopup } from '../components/SharePopup';
 import { BadgeSnippet } from '../components/BadgeSnippet';
@@ -497,7 +497,7 @@ export function ScanPage() {
             </div>
             {sealVisible && (
               <div className="pb-3">
-                <RosetteBadge
+                <TierMark
                   key={result.snapshot_hash}
                   tier={result.tier}
                   size={128}

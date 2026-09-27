@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Share2 } from 'lucide-react';
-import { RosetteBadge } from '../components/RosetteBadge';
+import { TierMark } from '../components/seals/TierMark';
 import { SharePopup } from '../components/SharePopup';
 import { BadgeSnippet } from '../components/BadgeSnippet';
 import { SiteLogo } from '../components/SiteLogo';
@@ -189,7 +189,7 @@ function Dossier({
           </p>
         </div>
         <div className="pb-3">
-          <RosetteBadge tier={current.tier} size={128} />
+          <TierMark tier={current.tier} size={128} />
         </div>
       </div>
 
@@ -246,7 +246,7 @@ function Dossier({
                 {h.sniff_score}
               </span>
               <span className="flex items-center gap-2">
-                <RosetteBadge tier={h.tier} size={40} />
+                <TierMark tier={h.tier} size={40} />
                 <span className="font-data text-sm uppercase tracking-[0.14em] text-ink-soft">
                   {h.tier}
                 </span>

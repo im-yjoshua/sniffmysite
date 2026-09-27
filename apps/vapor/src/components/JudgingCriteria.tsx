@@ -1,4 +1,4 @@
-import { RosetteBadge } from './RosetteBadge';
+import { TierMark } from './seals/TierMark';
 import { tierFor } from '../lib/tiers';
 import { CHECK_INFO, SCORE_STORY, type MetricKey } from '../lib/score-explainer';
 
@@ -105,7 +105,7 @@ export function JudgingCriteria() {
                   {lo}–{t.max}
                 </span>
                 <span className="flex w-full shrink-0 items-center gap-2.5 sm:w-64">
-                  <RosetteBadge tier={tier} size={48} />
+                  <TierMark tier={tier} size={48} />
                   <span className="font-data text-sm uppercase tracking-[0.14em] text-ink-soft">
                     {tier}
                   </span>

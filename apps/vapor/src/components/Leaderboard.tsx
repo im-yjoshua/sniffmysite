@@ -6,7 +6,7 @@ import {
   ScanApiError,
   type ApiLeaderboardEntry,
 } from '../lib/api';
-import { RosetteBadge } from './RosetteBadge';
+import { TierMark } from './seals/TierMark';
 import { SiteLogo } from './SiteLogo';
 
 interface LeaderboardProps {
@@ -102,7 +102,7 @@ export function Leaderboard({ onSniffAgain }: LeaderboardProps) {
                 </span>
 
                 <span className="hidden w-12 shrink-0 justify-end md:flex">
-                  <RosetteBadge tier={s.tier} size={40} />
+                  <TierMark tier={s.tier} size={40} />
                 </span>
 
                 {/* Always visible on phones — there's no hover on touch.

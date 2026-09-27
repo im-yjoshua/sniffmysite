@@ -8,7 +8,7 @@ import {
   type LeaderboardSort,
 } from '../lib/api';
 import { CATEGORIES, categoryFor, type CategoryKey } from '../lib/categories';
-import { RosetteBadge } from '../components/RosetteBadge';
+import { TierMark } from '../components/seals/TierMark';
 import { SiteLogo } from '../components/SiteLogo';
 import { JudgingCriteria } from '../components/JudgingCriteria';
 
@@ -291,7 +291,7 @@ export function LeaderboardPage() {
                     )}
 
                     <span className="hidden w-60 shrink-0 items-center justify-end gap-3 md:flex">
-                      <RosetteBadge tier={e.tier} size={44} />
+                      <TierMark tier={e.tier} size={44} />
                       <span className="font-data text-sm uppercase tracking-[0.14em] text-ink-soft">
                         {e.tier}
                       </span>

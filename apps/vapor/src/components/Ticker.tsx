@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchRecentScans, ScanApiError, type ApiRecentScan } from '../lib/api';
-import { RosetteBadge } from './RosetteBadge';
+import { TierMark } from './seals/TierMark';
 
 /** Quiet re-check cadence — new sniffs land without a reload. */
 const POLL_MS = 20_000;
@@ -95,7 +95,7 @@ function TickerItem({ scan, hidden }: { scan: ApiRecentScan; hidden: boolean }) 
         tabIndex={hidden ? -1 : undefined}
         className="tap-target inline-flex min-h-[44px] items-center gap-2.5 whitespace-nowrap font-data text-sm text-ink-soft transition-colors hover:text-ink"
       >
-        <RosetteBadge tier={scan.tier} size={28} />
+        <TierMark tier={scan.tier} size={28} />
         <span className="truncate">{scan.domain}</span>
         <span className="font-bold text-ink">{scan.sniff_score}</span>
       </Link>

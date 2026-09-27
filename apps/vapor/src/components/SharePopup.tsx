@@ -8,7 +8,7 @@ import {
   ImageOff,
   Link2,
 } from 'lucide-react';
-import { RosetteBadge } from './RosetteBadge';
+import { TierMark } from './seals/TierMark';
 import type { TierLabel } from '../lib/api';
 
 export interface SharePopupProps {
@@ -190,7 +190,7 @@ export function SharePopup({
 
         <div className="px-5 py-5">
           <div className="flex items-center gap-4">
-            <RosetteBadge tier={tier} size={96} className="shrink-0" />
+            <TierMark tier={tier} size={96} className="shrink-0" />
             <div>
               <p className="break-all font-inscription text-2xl font-bold tracking-tight">
                 {domain}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check, Copy, RotateCcw, Swords } from 'lucide-react';
-import { RosetteBadge } from '../components/RosetteBadge';
+import { TierMark } from '../components/seals/TierMark';
 import { useCountUp } from '../hooks/useCountUp';
 import { buildSniffOffChallenge } from '../lib/share';
 import {
@@ -526,7 +526,7 @@ function SideCard({
               {shown}
             </p>
             <div className="flex items-center gap-3">
-              <RosetteBadge tier={state.result.tier} size={72} />
+              <TierMark tier={state.result.tier} size={72} />
               <span className="font-data text-sm font-bold uppercase tracking-[0.14em] text-ink">
                 {state.result.tier}
               </span>

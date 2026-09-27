@@ -16,7 +16,7 @@ import {
   type ApiMovers,
   type MoversWindow,
 } from '../lib/api';
-import { RosetteBadge } from '../components/RosetteBadge';
+import { TierMark } from '../components/seals/TierMark';
 import { SiteLogo } from '../components/SiteLogo';
 
 /**
@@ -105,7 +105,7 @@ function MoverRow({
           {row.delta}
         </span>
         <span className="hidden w-44 shrink-0 items-center justify-end gap-3 md:flex">
-          <RosetteBadge tier={row.tier} size={44} />
+          <TierMark tier={row.tier} size={44} />
         </span>
       </Link>
     </li>
@@ -198,7 +198,7 @@ function SteadySection({ rows }: { rows: ApiMoverRow[] }) {
                 ±0
               </span>
               <span className="hidden w-44 shrink-0 items-center justify-end gap-3 md:flex">
-                <RosetteBadge tier={row.tier} size={44} />
+                <TierMark tier={row.tier} size={44} />
               </span>
             </Link>
           </li>
