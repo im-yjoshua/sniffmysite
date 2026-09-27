@@ -5,6 +5,12 @@
 -- Data API auto-expose stays OFF: the API reads/writes through the
 -- service-role server client only. Joshua applies this; the API never
 -- runs DDL itself.
+--
+-- DASHBOARD STEP (required, easy to miss): after applying, go to
+-- Project Settings → Data API → Exposed schemas and check `billing`.
+-- Table-level toggles do NOTHING unless the schema itself is exposed —
+-- without this the API gets `permission denied for schema billing`
+-- (seen 2026-09-28: exposed tables alone are ineffective).
 -- ============================================================================
 
 create table billing.featured_roasts (
