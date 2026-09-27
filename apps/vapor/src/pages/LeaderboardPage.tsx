@@ -125,7 +125,7 @@ export function LeaderboardPage() {
       <p className="eyebrow text-ink-soft">
         The official ranking
       </p>
-      <h1 className="mt-4 font-display text-5xl font-bold tracking-tight md:text-6xl">
+      <h1 className="mt-4 font-inscription text-5xl font-bold tracking-tight md:text-6xl">
         Hall of Vapor
       </h1>
       <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -195,7 +195,7 @@ export function LeaderboardPage() {
 
       {error && (
         <div className="border-b border-hairline py-16 text-center">
-          <p className="font-display text-2xl font-bold">
+          <p className="font-inscription text-2xl font-bold">
             We can&rsquo;t load the rankings right now.
           </p>
           <p className="mt-2 text-base text-ink-faint">
@@ -221,7 +221,7 @@ export function LeaderboardPage() {
         sort === 'improved' &&
         allDeltasNull && (
         <div className="border-b border-hairline py-16 text-center md:py-20">
-          <p className="font-display text-3xl font-bold tracking-tight md:text-4xl">
+          <p className="font-inscription text-3xl font-bold tracking-tight md:text-4xl">
             No redemption arcs yet.
           </p>
           <p className="mx-auto mt-4 max-w-md text-lg leading-relaxed text-ink-soft">
@@ -253,7 +253,7 @@ export function LeaderboardPage() {
                     title={`Open the ${e.domain} report`}
                     className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4"
                   >
-                    <span className={`w-10 shrink-0 font-display text-lg font-bold tabular-nums ${
+                    <span className={`w-10 shrink-0 font-inscription text-lg font-bold tabular-nums ${
                       i === 0 && sort === 'real' ? 'text-gold' : 'text-ink-faint'
                     }`}>
                       {String(i + 1).padStart(2, '0')}
@@ -263,7 +263,7 @@ export function LeaderboardPage() {
 
                     <span className="min-w-0 flex-1">
                       <span
-                        className="block truncate font-display text-lg font-bold leading-tight tracking-tight"
+                        className="block truncate font-inscription text-lg font-bold leading-tight tracking-tight"
                         title={e.domain}
                       >
                         {e.domain}

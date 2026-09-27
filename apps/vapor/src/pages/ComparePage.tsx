@@ -172,7 +172,7 @@ export function ComparePage() {
     <main className="mx-auto max-w-6xl px-6 pb-16 pt-10 md:pt-14">
       <div className="border-b-2 border-ink pb-4">
         <p className="eyebrow text-ink-soft">Head to head</p>
-        <h1 className="mt-3 font-display text-5xl font-bold tracking-tight md:text-6xl">
+        <h1 className="mt-3 font-inscription text-5xl font-bold tracking-tight md:text-6xl">
           The sniff-off<span className="text-hazard">.</span>
         </h1>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -249,7 +249,7 @@ export function ComparePage() {
       {verdict && (
         <section className="mt-12 border-y-2 border-ink py-10" aria-live="polite">
           <p className="eyebrow text-ink-faint">The verdict</p>
-          <h2 className="mt-3 max-w-3xl font-display text-3xl font-bold leading-snug tracking-tight md:text-5xl">
+          <h2 className="mt-3 max-w-3xl font-inscription text-3xl font-bold leading-snug tracking-tight md:text-5xl">
             {verdict.headline}
           </h2>
           <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -394,7 +394,7 @@ function ChallengeBlock({ a, b }: { a: ApiScanResult; b: ApiScanResult }) {
       aria-label="Challenge a founder"
     >
       <p className="eyebrow text-ink-faint">Throw down the gauntlet</p>
-      <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
+      <h2 className="mt-3 font-inscription text-3xl font-bold tracking-tight md:text-4xl">
         Think {hostB} can do better?
       </h2>
       <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -499,7 +499,7 @@ function SideCard({
 
       {state.phase === 'error' && (
         <div className="mt-6" role="alert">
-          <h2 className="max-w-xl font-display text-2xl font-bold tracking-tight md:text-3xl">
+          <h2 className="max-w-xl font-inscription text-2xl font-bold tracking-tight md:text-3xl">
             {state.error.title}
           </h2>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -597,7 +597,7 @@ function MetricDiffs({ a, b }: { a: ApiScanResult; b: ApiScanResult }) {
                 className="grid min-w-0 gap-2 border-t border-hairline py-5 sm:grid-cols-[1fr_auto] sm:items-baseline sm:gap-6"
               >
                 <div className="min-w-0">
-                  <p className="font-display text-lg font-bold tracking-tight">
+                  <p className="font-inscription text-lg font-bold tracking-tight">
                     {d.label}
                   </p>
                   <p className="mt-1 break-all font-data text-sm text-ink-soft">

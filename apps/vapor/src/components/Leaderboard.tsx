@@ -47,7 +47,7 @@ export function Leaderboard({ onSniffAgain }: LeaderboardProps) {
           the whole page laid out wider than the viewport. Now the eyebrow
           drops to its own line instead of forcing overflow. */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b-2 border-ink pb-3">
-        <h2 className="min-w-0 font-display text-2xl font-bold uppercase tracking-tight">
+        <h2 className="min-w-0 font-inscription text-2xl font-bold uppercase tracking-tight">
           Hall of Vapor
         </h2>
         <span className="eyebrow min-w-0 text-ink-faint">
@@ -87,7 +87,7 @@ export function Leaderboard({ onSniffAgain }: LeaderboardProps) {
 
                 <span className="min-w-0 flex-1">
                   <span
-                    className="block truncate font-display text-base font-bold leading-tight"
+                    className="block truncate font-inscription text-base font-bold leading-tight"
                     title={s.domain}
                   >
                     {s.domain}

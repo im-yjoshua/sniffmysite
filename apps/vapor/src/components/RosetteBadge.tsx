@@ -21,14 +21,14 @@ import type { TierLabel } from '../lib/api';
  * the fill attribute) so var() resolves in every browser's SVG.
  */
 const COLORS: Record<TierLabel, string> = {
-  'CERTIFIED REAL': 'var(--color-rosette-gold)',
-  'ALMOST REAL': 'var(--color-rosette-slate)',
-  SUS: 'var(--color-rosette-sus)',
-  'JUST VIBES': 'var(--color-rosette-vibes)',
-  'CERTIFIED FAKE': 'var(--color-rosette-fake)',
+  'LAUREATE': 'var(--color-seal-laureate)',
+  'GLADIATOR': 'var(--color-seal-gladiator)',
+  RECRUIT: 'var(--color-seal-recruit)',
+  JESTER: 'var(--color-seal-jester)',
+  'LION FOOD': 'var(--color-seal-lionfood)',
 };
 
-const DISC = 'var(--color-rosette-disc)';
+const DISC = 'var(--color-seal-disc)';
 
 function badgeLines(tier: TierLabel): string[] {
   const words = tier.split(' ');

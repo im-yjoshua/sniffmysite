@@ -144,7 +144,7 @@ export function LaunchPage() {
     <main className="mx-auto max-w-6xl px-6 pb-16 pt-10 md:pt-14">
       <div className="border-b-2 border-ink pb-4">
         <p className="eyebrow text-ink-soft">The roast-my-launch kit</p>
-        <h1 className="mt-3 font-display text-5xl font-bold tracking-tight md:text-6xl">
+        <h1 className="mt-3 font-inscription text-5xl font-bold tracking-tight md:text-6xl">
           Launching? Get publicly sniffed
           <span className="text-hazard">.</span>
         </h1>
@@ -161,12 +161,12 @@ export function LaunchPage() {
           {STEPS.map((s) => (
             <li key={s.n} className="border-t-2 border-ink pt-5">
               <p
-                className="font-display text-4xl font-bold text-hazard"
+                className="font-inscription text-4xl font-bold text-hazard"
                 aria-hidden="true"
               >
                 {s.n}
               </p>
-              <h2 className="mt-3 font-display text-xl font-bold tracking-tight">
+              <h2 className="mt-3 font-inscription text-xl font-bold tracking-tight">
                 {s.title}
               </h2>
               <p className="mt-2 text-lg leading-relaxed text-ink-soft">
@@ -182,7 +182,7 @@ export function LaunchPage() {
         aria-label="Sniff your launch page"
         className="mt-12 border-y-2 border-ink py-10"
       >
-        <h2 className="flex items-center gap-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
+        <h2 className="flex items-center gap-3 font-inscription text-3xl font-bold tracking-tight md:text-4xl">
           <Rocket className="h-8 w-8 text-hazard" strokeWidth={2.25} />
           Step one starts here
         </h2>
@@ -223,7 +223,7 @@ export function LaunchPage() {
       {/* One template, three channel flavors. */}
       <section aria-label="Launch post template" className="mt-12">
         <p className="eyebrow text-ink-faint">Step three, done for you</p>
-        <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
+        <h2 className="mt-3 font-inscription text-3xl font-bold tracking-tight md:text-4xl">
           Post your score<span className="text-hazard">.</span>
         </h2>
         <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -277,13 +277,13 @@ export function LaunchPage() {
       {/* Honest answers, before anyone has to ask. */}
       <section aria-label="Questions" className="mt-12 border-t-2 border-ink pt-10">
         <p className="eyebrow text-ink-faint">Fair questions</p>
-        <h2 className="mt-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
+        <h2 className="mt-3 font-inscription text-3xl font-bold tracking-tight md:text-4xl">
           Asked before you ask<span className="text-hazard">.</span>
         </h2>
         <div className="mt-6 max-w-3xl space-y-8">
           {FAQS.map((f) => (
             <div key={f.q}>
-              <h3 className="font-display text-xl font-bold tracking-tight">
+              <h3 className="font-inscription text-xl font-bold tracking-tight">
                 {f.q}
               </h3>
               <p className="mt-2 text-lg leading-relaxed text-ink-soft">

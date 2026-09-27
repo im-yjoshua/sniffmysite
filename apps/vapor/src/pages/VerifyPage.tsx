@@ -163,7 +163,7 @@ export function VerifyPage() {
         <p className="eyebrow text-ink-soft">
           Claim your listing
         </p>
-        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight md:text-5xl">
+        <h1 className="mt-3 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
           This page is yours? Prove it.
         </h1>
         <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -245,7 +245,7 @@ export function VerifyPage() {
               <p className="eyebrow text-hazard">
                 That didn&rsquo;t work
               </p>
-              <p className="mt-3 font-display text-2xl font-bold tracking-tight">
+              <p className="mt-3 font-inscription text-2xl font-bold tracking-tight">
                 {failure.title}
               </p>
               <p className="mt-2 text-lg leading-relaxed text-ink-soft">
@@ -323,7 +323,7 @@ export function VerifyPage() {
             </p>
             {phase === 'unverified' && failure && (
               <div className="mt-4 max-w-2xl" role="alert">
-                <p className="font-display text-2xl font-bold tracking-tight">
+                <p className="font-inscription text-2xl font-bold tracking-tight">
                   {failure.title}
                 </p>
                 <p className="mt-2 text-lg leading-relaxed text-ink-soft">
@@ -358,7 +358,7 @@ export function VerifyPage() {
             <ShieldCheck className="mr-2 inline h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
             Claimed
           </p>
-          <h2 className="mt-4 font-display text-4xl font-bold tracking-tight md:text-5xl">
+          <h2 className="mt-4 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
             It&rsquo;s yours.
           </h2>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">

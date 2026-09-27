@@ -134,7 +134,7 @@ export function Navbar() {
             <span className="text-ink">
               <Logo className="h-8 w-8" />
             </span>
-            <span className="font-display text-xl font-bold uppercase tracking-tight max-[400px]:hidden">
+            <span className="font-inscription text-xl font-bold uppercase tracking-tight max-[400px]:hidden">
               SniffMySite
             </span>
           </Link>

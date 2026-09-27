@@ -129,7 +129,7 @@ function LandingPage() {
           <p className="eyebrow text-ink-soft">
             The startup smell test
           </p>
-          <h1 className="mt-4 font-display text-6xl font-bold leading-[1.04] tracking-tight md:text-7xl">
+          <h1 className="mt-4 font-inscription text-6xl font-bold leading-[1.04] tracking-tight md:text-7xl">
             We <span className="text-hazard">sniff</span> startups so you don&rsquo;t have to.
           </h1>
           <p className="mt-5 max-w-md text-lg leading-relaxed text-ink-soft">
@@ -172,7 +172,7 @@ function LandingPage() {
           <p className="eyebrow text-ink-soft">
             What is this
           </p>
-          <p className="max-w-3xl font-display text-xl font-bold leading-snug tracking-tight md:text-2xl">
+          <p className="max-w-3xl font-inscription text-xl font-bold leading-snug tracking-tight md:text-2xl">
             A joke site that takes startup hype seriously. We read a
             company&rsquo;s public web page and score the page
             <span className="text-hazard"> from 0 (pure vapor) to 100 (certified real)</span>.
@@ -184,7 +184,7 @@ function LandingPage() {
 
       {/* The joke, written straight (§2.8) */}
       <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
-        <p className="max-w-2xl font-display text-2xl font-bold leading-snug tracking-tight md:text-3xl">
+        <p className="max-w-2xl font-inscription text-2xl font-bold leading-snug tracking-tight md:text-3xl">
           Every AI startup is &lsquo;revolutionizing&rsquo; something.
           <br />
           <span className="text-ink-soft">We measure exactly how much.</span>
@@ -227,7 +227,7 @@ function NotFound() {
       <p className="eyebrow text-hazard-ink">
         404
       </p>
-      <h1 className="mt-4 font-display text-4xl font-bold tracking-tight md:text-5xl">
+      <h1 className="mt-4 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
         This page doesn&rsquo;t exist.
       </h1>
       <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">

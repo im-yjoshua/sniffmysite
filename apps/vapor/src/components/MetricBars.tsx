@@ -30,7 +30,7 @@ export function MetricBars({ metrics }: { metrics: MetricScores }) {
             aria-label={`${info.name}: ${value} out of 100`}
           >
             <dt>
-              <span className="font-display text-lg font-bold tracking-tight">
+              <span className="font-inscription text-lg font-bold tracking-tight">
                 {info.name}
               </span>{' '}
               <span className="ml-2 align-middle font-data text-sm uppercase tracking-[0.14em] text-ink-faint">

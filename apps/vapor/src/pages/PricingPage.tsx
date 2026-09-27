@@ -68,7 +68,7 @@ export function PricingPage() {
 
       <div className="flex flex-wrap items-start justify-between gap-6 py-10 md:py-14">
         <div className="max-w-2xl">
-          <h1 className="font-display text-5xl font-bold tracking-tight md:text-6xl">
+          <h1 className="font-inscription text-5xl font-bold tracking-tight md:text-6xl">
             Skip the line.
           </h1>
           <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -112,7 +112,7 @@ export function PricingPage() {
               </span>
               <div>
                 <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                  <h2 className="font-display text-3xl font-bold tracking-tight">
+                  <h2 className="font-inscription text-3xl font-bold tracking-tight">
                     {p.name}
                   </h2>
                   <p className="font-data text-3xl font-bold tabular-nums text-hazard">
@@ -155,7 +155,7 @@ export function PricingPage() {
       {/* Sponsorships: handshake deals, not a checkout button. */}
       <div className="mt-16 border-t-2 border-ink pt-10">
         <p className="eyebrow text-ink-soft">Sponsor the homepage</p>
-        <h2 className="mt-4 font-display text-4xl font-bold tracking-tight md:text-5xl">
+        <h2 className="mt-4 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
           Banners open after launch.
         </h2>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -167,7 +167,7 @@ export function PricingPage() {
 
       {/* Integrity line (§2.9). */}
       <div className="mt-10 space-y-3">
-        <p className="font-display text-2xl font-bold tracking-tight">
+        <p className="font-inscription text-2xl font-bold tracking-tight">
           Paid = re-test + badge. Never deleted.
         </p>
         <p className="max-w-2xl text-lg leading-relaxed text-ink-soft">

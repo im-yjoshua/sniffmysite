@@ -15,8 +15,8 @@ import type { TierLabel } from '../lib/tiers';
  */
 
 const BADGE_TIERS: ReadonlySet<TierLabel> = new Set([
-  'CERTIFIED REAL',
-  'ALMOST REAL',
+  'LAUREATE',
+  'GLADIATOR',
 ]);
 
 const SITE_URL = 'https://sniffmysite.lol';

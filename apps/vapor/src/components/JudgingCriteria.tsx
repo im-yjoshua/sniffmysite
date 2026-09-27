@@ -61,7 +61,7 @@ export function JudgingCriteria() {
       <p className="eyebrow text-ink-soft">
         The judging rubric
       </p>
-      <h2 className="mt-4 font-display text-4xl font-bold tracking-tight md:text-5xl">
+      <h2 className="mt-4 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
         How we judge
       </h2>
       <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -75,7 +75,7 @@ export function JudgingCriteria() {
             <p className="eyebrow text-ink-faint">
               Check {i + 1} of 6
             </p>
-            <h3 className="mt-2 font-display text-xl font-bold tracking-tight">
+            <h3 className="mt-2 font-inscription text-xl font-bold tracking-tight">
               {CHECK_INFO[c.key].name}
             </h3>
             <p className="mt-1 text-base font-bold text-ink">

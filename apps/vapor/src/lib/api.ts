@@ -6,12 +6,8 @@
  * Types mirror `packages/api/src/lib/score.ts` — kept in sync by hand.
  */
 
-export type TierLabel =
-  | 'CERTIFIED REAL'
-  | 'ALMOST REAL'
-  | 'SUS'
-  | 'JUST VIBES'
-  | 'CERTIFIED FAKE';
+import type { TierLabel } from './tiers';
+export type { TierLabel };
 
 export interface MetricScores {
   buzzword_density: number;

@@ -42,7 +42,7 @@ export function TrendingBoard() {
     >
       <div className="mx-auto max-w-6xl px-6 py-14 md:py-16">
         <p className="eyebrow text-ink-soft">Most sniffed</p>
-        <p className="mt-4 max-w-2xl font-display text-2xl font-bold leading-snug tracking-tight md:text-3xl">
+        <p className="mt-4 max-w-2xl font-inscription text-2xl font-bold leading-snug tracking-tight md:text-3xl">
           The pages people keep testing.
         </p>
         {hosts.length === 0 ? (

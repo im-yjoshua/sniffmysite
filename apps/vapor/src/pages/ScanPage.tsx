@@ -329,7 +329,7 @@ export function ScanPage() {
           <p className="eyebrow text-hazard">
             Test failed
           </p>
-          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="mt-4 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
             No web address entered.
           </h1>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -372,7 +372,7 @@ export function ScanPage() {
           <p className="eyebrow text-hazard">
             Out of free tests
           </p>
-          <h1 className="mt-4 max-w-2xl font-display text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="mt-4 max-w-2xl font-inscription text-4xl font-bold tracking-tight md:text-5xl">
             You&rsquo;ve used your 30 free tests this hour.
           </h1>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -435,7 +435,7 @@ export function ScanPage() {
           <p className="eyebrow text-hazard">
             Test failed
           </p>
-          <h1 className="mt-4 max-w-2xl font-display text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="mt-4 max-w-2xl font-inscription text-4xl font-bold tracking-tight md:text-5xl">
             {error.title}
           </h1>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -511,7 +511,7 @@ export function ScanPage() {
             <p className="eyebrow text-ink-faint">
               The findings
             </p>
-            <p className="mt-4 max-w-3xl font-display text-2xl font-bold leading-snug tracking-tight md:text-4xl">
+            <p className="mt-4 max-w-3xl font-inscription text-2xl font-bold leading-snug tracking-tight md:text-4xl">
               {result.verdict}
             </p>
             {result.evidence.language_note && (

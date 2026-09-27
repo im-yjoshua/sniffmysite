@@ -80,13 +80,13 @@ function MoverRow({
         title={`Open the ${row.domain} report`}
         className="tap-target group flex w-full items-center gap-3 border-b border-hairline py-4 transition-transform duration-150 hover:-translate-y-px focus:-translate-y-px sm:gap-4"
       >
-        <span className="w-10 shrink-0 font-display text-lg font-bold tabular-nums text-ink-faint">
+        <span className="w-10 shrink-0 font-inscription text-lg font-bold tabular-nums text-ink-faint">
           {String(rank).padStart(2, '0')}
         </span>
         <SiteLogo domain={row.domain} size="md" />
         <span className="min-w-0 flex-1">
           <span
-            className="block truncate font-display text-lg font-bold leading-tight tracking-tight"
+            className="block truncate font-inscription text-lg font-bold leading-tight tracking-tight"
             title={row.domain}
           >
             {row.domain}
@@ -127,7 +127,7 @@ function MoverSection({
 }) {
   return (
     <section aria-label={title} className="mt-12">
-      <h2 className="flex items-center gap-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
+      <h2 className="flex items-center gap-3 font-inscription text-3xl font-bold tracking-tight md:text-4xl">
         <span className={up ? 'text-ink' : 'text-hazard'} aria-hidden="true">
           {icon}
         </span>
@@ -157,7 +157,7 @@ function SteadySection({ rows }: { rows: ApiMoverRow[] }) {
   if (rows.length === 0) return null;
   return (
     <section aria-label="Held their ground" className="mt-12">
-      <h2 className="flex items-center gap-3 font-display text-3xl font-bold tracking-tight md:text-4xl">
+      <h2 className="flex items-center gap-3 font-inscription text-3xl font-bold tracking-tight md:text-4xl">
         <span className="text-ink-soft" aria-hidden="true">
           <Minus className="h-8 w-8" strokeWidth={2.25} />
         </span>
@@ -176,13 +176,13 @@ function SteadySection({ rows }: { rows: ApiMoverRow[] }) {
               title={`Open the ${row.domain} report`}
               className="tap-target group flex w-full items-center gap-3 border-b border-hairline py-4 transition-transform duration-150 hover:-translate-y-px focus:-translate-y-px sm:gap-4"
             >
-              <span className="w-10 shrink-0 font-display text-lg font-bold tabular-nums text-ink-faint">
+              <span className="w-10 shrink-0 font-inscription text-lg font-bold tabular-nums text-ink-faint">
                 {String(i + 1).padStart(2, '0')}
               </span>
               <SiteLogo domain={row.domain} size="md" />
               <span className="min-w-0 flex-1">
                 <span
-                  className="block truncate font-display text-lg font-bold leading-tight tracking-tight"
+                  className="block truncate font-inscription text-lg font-bold leading-tight tracking-tight"
                   title={row.domain}
                 >
                   {row.domain}
@@ -253,7 +253,7 @@ export function MoversPage() {
     <main className="mx-auto max-w-6xl px-6 pb-16 pt-10 md:pt-14">
       <div className="border-b-2 border-ink pb-4">
         <p className="eyebrow text-ink-soft">The weekly sniff report</p>
-        <h1 className="mt-3 font-display text-5xl font-bold tracking-tight md:text-6xl">
+        <h1 className="mt-3 font-inscription text-5xl font-bold tracking-tight md:text-6xl">
           Biggest movers<span className="text-hazard">.</span>
         </h1>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -316,7 +316,7 @@ export function MoversPage() {
 
       {error && (
         <div className="mt-12" role="alert">
-          <h2 className="font-display text-2xl font-bold tracking-tight">
+          <h2 className="font-inscription text-2xl font-bold tracking-tight">
             The board is taking a nap.
           </h2>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">

@@ -85,7 +85,7 @@ export function StartupProfilePage() {
           <p className="eyebrow text-hazard">
             No report
           </p>
-          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="mt-4 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
             No report for this page.
           </h1>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -114,7 +114,7 @@ export function StartupProfilePage() {
           <p className="eyebrow text-hazard">
             Couldn&rsquo;t load
           </p>
-          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="mt-4 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
             We couldn&rsquo;t open this report.
           </h1>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -170,7 +170,7 @@ function Dossier({
       </p>
       <div className="mt-3 flex items-center gap-4 md:gap-5">
         <SiteLogo domain={domain} size="lg" />
-        <h1 className="break-all font-display text-4xl font-bold tracking-tight md:text-6xl">
+        <h1 className="break-all font-inscription text-4xl font-bold tracking-tight md:text-6xl">
           {domain}
         </h1>
       </div>
@@ -201,7 +201,7 @@ function Dossier({
             <p className="eyebrow text-ink-faint">
               The findings
             </p>
-            <p className="mt-4 max-w-3xl font-display text-2xl font-bold leading-snug tracking-tight md:text-4xl">
+            <p className="mt-4 max-w-3xl font-inscription text-2xl font-bold leading-snug tracking-tight md:text-4xl">
               {current.verdict}
             </p>
           </section>

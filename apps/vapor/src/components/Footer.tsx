@@ -156,7 +156,7 @@ export function Footer() {
         <div className="grid gap-12 lg:grid-cols-[1.25fr_1fr] lg:gap-16">
           <div>
             <p className="eyebrow text-ink-soft">The nose never sleeps</p>
-            <p className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight md:text-5xl">
+            <p className="mt-4 font-inscription text-3xl font-bold leading-tight tracking-tight md:text-5xl">
               No startups were harmed.
               <br />
               Several were exposed.
@@ -204,7 +204,7 @@ export function Footer() {
         >
           <span
             aria-hidden="true"
-            className="block whitespace-nowrap text-center font-display text-[clamp(2rem,10vw,9.5rem)] font-bold uppercase leading-none tracking-tight text-ink"
+            className="block whitespace-nowrap text-center font-inscription text-[clamp(2rem,10vw,9.5rem)] font-bold uppercase leading-none tracking-tight text-ink"
           >
             SniffMySite
           </span>

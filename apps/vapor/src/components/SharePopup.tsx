@@ -192,7 +192,7 @@ export function SharePopup({
           <div className="flex items-center gap-4">
             <RosetteBadge tier={tier} size={96} className="shrink-0" />
             <div>
-              <p className="break-all font-display text-2xl font-bold tracking-tight">
+              <p className="break-all font-inscription text-2xl font-bold tracking-tight">
                 {domain}
               </p>
               <p className="mt-1 font-data text-3xl font-bold tabular-nums text-hazard">
