@@ -31,7 +31,7 @@ function inputFor(host: string, sniff = 74, at = '2026-09-21T12:00:00Z'): Recent
     finalUrl: `https://${host}/some/landing/page`,
     vapor_score: 100 - sniff,
     sniff_score: sniff,
-    tier: sniff >= 81 ? 'CERTIFIED REAL' : sniff >= 61 ? 'ALMOST REAL' : 'SUS',
+    tier: sniff >= 90 ? 'LAUREATE' : sniff >= 75 ? 'GLADIATOR' : sniff >= 50 ? 'RECRUIT' : sniff >= 25 ? 'JESTER' : 'LION FOOD',
     scanned_at: new Date(at).toISOString(),
   };
 }
@@ -67,7 +67,7 @@ describe('per-host sniff tallies', () => {
     const [top] = getTrendingHosts();
     assert.equal(top.sniff_count, 2);
     assert.equal(top.latest_sniff_score, 88);
-    assert.equal(top.tier, 'CERTIFIED REAL');
+    assert.equal(top.tier, 'GLADIATOR');
   });
 
   it('www and path variants of one domain tally together', () => {

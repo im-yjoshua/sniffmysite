@@ -167,8 +167,8 @@ describe('processScanForWatchlist', () => {
   it('alerts on a 10+ point drop, exactly once', async () => {
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
-    await scan(D, 90, 'CERTIFIED REAL', sender); // baseline
-    await scan(D, 75, 'ALMOST REAL', sender); // -15, tier drop too
+    await scan(D, 90, 'LAUREATE', sender); // baseline
+    await scan(D, 75, 'GLADIATOR', sender); // -15, tier drop too
     assert.equal(calls.length, 1);
     const a = calls[0];
     assert.equal(a.domain, D);
@@ -176,7 +176,7 @@ describe('processScanForWatchlist', () => {
     assert.equal(a.to, FREE_EMAIL);
     assert.equal(a.prevScore, 90);
     assert.equal(a.newScore, 75);
-    assert.equal(a.tier, 'ALMOST REAL');
+    assert.equal(a.tier, 'GLADIATOR');
     assert.match(a.unsubUrl, /\/api\/vapor\/watchlist\/unsubscribe\?token=[0-9a-f]{48}/);
     assert.match(a.siteUrl, /^https?:/);
     const entry = getWatchlistEntry(D);
@@ -187,8 +187,8 @@ describe('processScanForWatchlist', () => {
   it('alerts on a tier drop under 10 points (81 → 79 crosses a boundary)', async () => {
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
-    await scan(D, 81, 'CERTIFIED REAL', sender);
-    await scan(D, 79, 'ALMOST REAL', sender); // -2, but tier rank dropped
+    await scan(D, 81, 'LAUREATE', sender);
+    await scan(D, 79, 'GLADIATOR', sender); // -2, but tier rank dropped
     assert.equal(calls.length, 1);
     assert.equal(calls[0].prevScore, 81);
     assert.equal(calls[0].newScore, 79);
@@ -197,30 +197,30 @@ describe('processScanForWatchlist', () => {
   it('stays silent on a 5-point wiggle in the same tier', async () => {
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
-    await scan(D, 70, 'ALMOST REAL', sender);
-    await scan(D, 65, 'ALMOST REAL', sender); // -5, same tier
+    await scan(D, 70, 'GLADIATOR', sender);
+    await scan(D, 65, 'GLADIATOR', sender); // -5, same tier
     assert.equal(calls.length, 0);
   });
 
   it('no duplicate alert for a second scan at the same low score', async () => {
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
-    await scan(D, 90, 'CERTIFIED REAL', sender);
-    await scan(D, 75, 'ALMOST REAL', sender);
+    await scan(D, 90, 'LAUREATE', sender);
+    await scan(D, 75, 'GLADIATOR', sender);
     assert.equal(calls.length, 1);
-    await scan(D, 75, 'ALMOST REAL', sender); // same low — no event
+    await scan(D, 75, 'GLADIATOR', sender); // same low — no event
     assert.equal(calls.length, 1);
   });
 
   it('recovery then a fresh drop alerts again', async () => {
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
-    await scan(D, 90, 'CERTIFIED REAL', sender);
-    await scan(D, 75, 'ALMOST REAL', sender);
+    await scan(D, 90, 'LAUREATE', sender);
+    await scan(D, 75, 'GLADIATOR', sender);
     assert.equal(calls.length, 1);
-    await scan(D, 92, 'CERTIFIED REAL', sender); // recovered — reset
+    await scan(D, 92, 'LAUREATE', sender); // recovered — reset
     assert.equal(calls.length, 1);
-    await scan(D, 80, 'ALMOST REAL', sender); // -12 fresh drop
+    await scan(D, 80, 'GLADIATOR', sender); // -12 fresh drop
     assert.equal(calls.length, 2);
     assert.equal(calls[1].prevScore, 92);
     assert.equal(calls[1].newScore, 80);
@@ -229,9 +229,9 @@ describe('processScanForWatchlist', () => {
   it('gradual small steps within one tier stay silent; a step crossing a tier boundary alerts', async () => {
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
-    await scan(D, 90, 'CERTIFIED REAL', sender);
-    await scan(D, 82, 'CERTIFIED REAL', sender); // -8
-    await scan(D, 74, 'ALMOST REAL', sender); // -8 vs 82, but tier dropped → ALERT
+    await scan(D, 90, 'LAUREATE', sender);
+    await scan(D, 82, 'LAUREATE', sender); // -8
+    await scan(D, 74, 'GLADIATOR', sender); // -8 vs 82, but tier dropped → ALERT
     assert.equal(calls.length, 1); // tier rank dropped on the second step
   });
 
@@ -239,10 +239,10 @@ describe('processScanForWatchlist', () => {
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
     // A v1-era scan as the only history chapter.
-    const v1 = fakeResult(90, 'CERTIFIED REAL', 'v1');
+    const v1 = fakeResult(90, 'LAUREATE', 'v1');
     recordBoardScan({ finalUrl: `https://${D}/`, result: v1 });
     // Now a v2 scan drops 15 points: no same-version baseline → silence.
-    const v2 = fakeResult(75, 'ALMOST REAL', 'v2');
+    const v2 = fakeResult(75, 'GLADIATOR', 'v2');
     recordBoardScan({ finalUrl: `https://${D}/`, result: v2 });
     await processScanForWatchlist(`https://${D}/`, v2, sender);
     assert.equal(calls.length, 0);
@@ -251,15 +251,15 @@ describe('processScanForWatchlist', () => {
   it('a score gain never alerts', async () => {
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
-    await scan(D, 60, 'SUS', sender);
-    await scan(D, 78, 'ALMOST REAL', sender); // +18, tier up
+    await scan(D, 60, 'RECRUIT', sender);
+    await scan(D, 78, 'GLADIATOR', sender); // +18, tier up
     assert.equal(calls.length, 0);
   });
 
   it('a host with no baseline (first scan ever) never alerts', async () => {
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
-    const result = fakeResult(10, 'CERTIFIED FAKE');
+    const result = fakeResult(10, 'LION FOOD');
     recordBoardScan({ finalUrl: `https://${D}/`, result });
     await processScanForWatchlist(`https://${D}/`, result, sender);
     assert.equal(calls.length, 0);
@@ -267,15 +267,15 @@ describe('processScanForWatchlist', () => {
 
   it('a domain with no watchlist entry is ignored silently', async () => {
     const { sender, calls } = fakeSender();
-    await scan('lemonsqueezy.com', 90, 'CERTIFIED REAL', sender);
-    await scan('lemonsqueezy.com', 70, 'ALMOST REAL', sender);
+    await scan('lemonsqueezy.com', 90, 'LAUREATE', sender);
+    await scan('lemonsqueezy.com', 70, 'GLADIATOR', sender);
     assert.equal(calls.length, 0);
   });
 
   it('malformed URLs never throw', async () => {
     watch(D, FREE_EMAIL);
     const { sender } = fakeSender();
-    await processScanForWatchlist('not a url', fakeResult(50, 'SUS'), sender);
+    await processScanForWatchlist('not a url', fakeResult(50, 'RECRUIT'), sender);
   });
 
   it('a failing sender never throws and leaves the drop owed', async () => {
@@ -285,9 +285,9 @@ describe('processScanForWatchlist', () => {
       calls.push(input);
       throw new Error('resend is down');
     };
-    const r1 = fakeResult(90, 'CERTIFIED REAL');
+    const r1 = fakeResult(90, 'LAUREATE');
     recordBoardScan({ finalUrl: `https://${D}/`, result: r1 });
-    const r2 = fakeResult(75, 'ALMOST REAL');
+    const r2 = fakeResult(75, 'GLADIATOR');
     recordBoardScan({ finalUrl: `https://${D}/`, result: r2 });
     await processScanForWatchlist(`https://${D}/`, r2, badSender);
     assert.equal(calls.length, 1);
@@ -392,8 +392,8 @@ describe('claim flow + watchlist integration', () => {
     const token = claimToken(DOMAIN, { email: EMAIL, alerts: true });
     assert.equal((await verifyClaim(DOMAIN, dnsForToken(token))).verified, true);
     const { sender, calls } = fakeSender();
-    await scan(DOMAIN, 90, 'CERTIFIED REAL', sender);
-    await scan(DOMAIN, 78, 'ALMOST REAL', sender);
+    await scan(DOMAIN, 90, 'LAUREATE', sender);
+    await scan(DOMAIN, 78, 'GLADIATOR', sender);
     assert.equal(calls.length, 1);
     assert.equal(calls[0].to, EMAIL);
     assert.equal(calls[0].prevScore, 90);
@@ -473,9 +473,9 @@ describe('watchlist endpoints', () => {
 
     // After unsubscribe, a 10-point drop sends nothing.
     const { sender, calls } = fakeSender();
-    const r1 = fakeResult(90, 'CERTIFIED REAL');
+    const r1 = fakeResult(90, 'LAUREATE');
     recordBoardScan({ finalUrl: `https://${DOMAIN}/`, result: r1 });
-    const r2 = fakeResult(75, 'ALMOST REAL');
+    const r2 = fakeResult(75, 'GLADIATOR');
     recordBoardScan({ finalUrl: `https://${DOMAIN}/`, result: r2 });
     await processScanForWatchlist(`https://${DOMAIN}/`, r2, sender);
     assert.equal(calls.length, 0);

@@ -61,22 +61,22 @@ describe('scorePage', () => {
   });
 
   it('tier boundaries match the spec (sniff-keyed: higher = more real)', () => {
-    assert.equal(tierFor(0), 'CERTIFIED FAKE');
-    assert.equal(tierFor(20), 'CERTIFIED FAKE');
-    assert.equal(tierFor(21), 'JUST VIBES');
-    assert.equal(tierFor(40), 'JUST VIBES');
-    assert.equal(tierFor(41), 'SUS');
-    assert.equal(tierFor(60), 'SUS');
-    assert.equal(tierFor(61), 'ALMOST REAL');
-    assert.equal(tierFor(80), 'ALMOST REAL');
-    assert.equal(tierFor(81), 'CERTIFIED REAL');
-    assert.equal(tierFor(100), 'CERTIFIED REAL');
+    assert.equal(tierFor(0), 'LION FOOD');
+    assert.equal(tierFor(24), 'LION FOOD');
+    assert.equal(tierFor(25), 'JESTER');
+    assert.equal(tierFor(49), 'JESTER');
+    assert.equal(tierFor(50), 'RECRUIT');
+    assert.equal(tierFor(74), 'RECRUIT');
+    assert.equal(tierFor(75), 'GLADIATOR');
+    assert.equal(tierFor(89), 'GLADIATOR');
+    assert.equal(tierFor(90), 'LAUREATE');
+    assert.equal(tierFor(100), 'LAUREATE');
   });
 
-  it('rates a hype-drunk page as JUST VIBES or worse', () => {
+  it('rates a hype-drunk page as JESTER or worse', () => {
     const r = scorePage(HIGH_VAPOR_HTML, 'https://hypeai.example', FIXED_NOW);
     assert.ok(r.vapor_score > 60, `expected > 60, got ${r.vapor_score}`);
-    assert.ok(r.tier === 'JUST VIBES' || r.tier === 'CERTIFIED FAKE');
+    assert.ok(r.tier === 'JESTER' || r.tier === 'LION FOOD');
     assert.ok(r.metrics.buzzword_density > 50, `buzzword metric ${r.metrics.buzzword_density}`);
     assert.ok(r.evidence.buzzword_hits > 10);
     assert.ok(r.evidence.top_phrases.length > 0);
@@ -85,10 +85,10 @@ describe('scorePage', () => {
     assert.ok(r.verdict.includes(`${r.sniff_score}/100`));
   });
 
-  it('rates a clean dev-tool page as ALMOST REAL or better', () => {
+  it('rates a clean dev-tool page as GLADIATOR or better', () => {
     const r = scorePage(CLEAN_HTML, 'https://plaindb.example', FIXED_NOW);
     assert.ok(r.vapor_score <= 40, `expected <= 40, got ${r.vapor_score}`);
-    assert.ok(r.tier === 'CERTIFIED REAL' || r.tier === 'ALMOST REAL');
+    assert.ok(r.tier === 'LAUREATE' || r.tier === 'GLADIATOR');
     assert.equal(r.metrics.pricing_opacity, 0);
     assert.equal(r.metrics.freshness, 0);
     assert.ok(r.evidence.has_pricing);
@@ -335,9 +335,9 @@ describe('scorePage public-number contract', () => {
 
   it('tiers the seed-fixture range 0–53 vapor as 47–100 sniff', () => {
     // Seed vapor tops out at 53 (character.ai); nothing in the seed should
-    // ever land below 47 sniff or below the SUS band.
-    assert.equal(tierFor(sniffScoreFor(53)), 'SUS');
-    assert.equal(tierFor(sniffScoreFor(0)), 'CERTIFIED REAL');
+    // ever land below 47 sniff or below the JESTER band.
+    assert.equal(tierFor(sniffScoreFor(53)), 'JESTER');
+    assert.equal(tierFor(sniffScoreFor(0)), 'LAUREATE');
   });
 
   it('verdicts read in the flipped voice, not the old vapor voice', () => {

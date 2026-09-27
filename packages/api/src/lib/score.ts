@@ -48,24 +48,23 @@ export const WEIGHTS = {
 } as const;
 
 /** Public tiers — keyed off the SNIFF score (higher = more real).
- * 81+ CERTIFIED REAL · 61–80 ALMOST REAL · 41–60 SUS
- * 21–40 JUST VIBES · 0–20 CERTIFIED FAKE.
- * This is the same partition as the old vapor-keyed tiers, flipped:
- * sniff = 100 − vapor, so the boundaries sit in exactly the same places. */
+ * 90+ LAUREATE · 75–89 GLADIATOR · 50–74 RECRUIT · 25–49 JESTER · 0–24
+ * LION FOOD. The arena's verdict names; the six scoring checks and their
+ * weights are untouched — only the presentation bands changed. */
 export type Tier =
-  | 'CERTIFIED REAL'
-  | 'ALMOST REAL'
-  | 'SUS'
-  | 'JUST VIBES'
-  | 'CERTIFIED FAKE';
+  | 'LAUREATE'
+  | 'GLADIATOR'
+  | 'RECRUIT'
+  | 'JESTER'
+  | 'LION FOOD';
 
 /** Tier for a SNIFF score (0–100, higher = more real). */
 export function tierFor(sniff: number): Tier {
-  if (sniff >= 81) return 'CERTIFIED REAL';
-  if (sniff >= 61) return 'ALMOST REAL';
-  if (sniff >= 41) return 'SUS';
-  if (sniff >= 21) return 'JUST VIBES';
-  return 'CERTIFIED FAKE';
+  if (sniff >= 90) return 'LAUREATE';
+  if (sniff >= 75) return 'GLADIATOR';
+  if (sniff >= 50) return 'RECRUIT';
+  if (sniff >= 25) return 'JESTER';
+  return 'LION FOOD';
 }
 
 export interface MetricScores {
@@ -437,26 +436,26 @@ function buildVerdict(
     missing.length > 0 ? ` — and ${missing.slice(0, 3).join(', ')} to be found` : '';
 
   switch (tier) {
-    case 'CERTIFIED REAL': {
-      // Grudging respect. Ground the praise in real findings: pricing and
-      // the actual hype-word count, never invented.
+    case 'LAUREATE': {
+      // Grudging imperial respect. Ground the praise in real findings:
+      // pricing and the actual hype-word count, never invented.
       const hype =
         evidence.buzzword_hits === 0
           ? 'zero hype words'
           : `only ${evidence.buzzword_hits} hype word${evidence.buzzword_hits === 1 ? '' : 's'}`;
-      return `${sniff}/100. Fine. ${evidence.has_pricing ? 'Prices are public, ' : ''}the claims stay in their lane, and we found ${hype}. We checked twice.`;
+      return `${sniff}/100. The crowd roars. ${evidence.has_pricing ? 'Prices are public, ' : ''}the claims stay in their lane, and we found ${hype}. We checked twice.`;
     }
-    case 'ALMOST REAL':
+    case 'GLADIATOR':
       // Damning with faint praise, plus the one real finding.
-      return `${sniff}/100. So close. Yet so far. ${detail}${missingStr} — one honest paragraph and this page would put us out of a job.`;
-    case 'SUS':
-      // The fulcrum — the classic sus voice, unchanged in spirit.
-      return `${sniff}/100 — solidly sus. ${detail}${missingStr}. Proceed with eyebrows raised.`;
-    case 'JUST VIBES':
-      return `${sniff}/100. This page is just vibes: ${detail}${missingStr}. Somewhere under the adjectives there might be a product. Might.`;
-    case 'CERTIFIED FAKE':
-      // The lab is thrilled.
-      return `A new record! ${sniff}/100 — we've mounted this landing page on the Wall of Shame. ${detail}${missingStr}.`;
+      return `${sniff}/100. A proven fighter. ${detail}${missingStr} — one honest paragraph and this page takes the laurels.`;
+    case 'RECRUIT':
+      // The fulcrum — shows promise, shows fear.
+      return `${sniff}/100. Shows promise. Shows fear. ${detail}${missingStr}. The arena is watching.`;
+    case 'JESTER':
+      return `${sniff}/100. The crowd laughs. Not with you. ${detail}${missingStr}. Somewhere under the adjectives there might be a product. Might.`;
+    case 'LION FOOD':
+      // The lions are delighted.
+      return `A new record! ${sniff}/100 — thrown to the lions. ${detail}${missingStr}.`;
   }
 }
 

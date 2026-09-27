@@ -43,11 +43,11 @@ function scoreAll(): Array<{ fixture: Fixture; result: ScanResult }> {
 }
 
 const VALID_TIERS = [
-  'CERTIFIED REAL',
-  'ALMOST REAL',
-  'SUS',
-  'JUST VIBES',
-  'CERTIFIED FAKE',
+  'LAUREATE',
+  'GLADIATOR',
+  'RECRUIT',
+  'JESTER',
+  'LION FOOD',
 ] as const;
 
 describe('20-site fixture suite (vapor v2 engine, sniff v2 display)', () => {

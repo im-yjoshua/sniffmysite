@@ -36,9 +36,9 @@ const CLEAN_HTML = `
 
 describe('badgeSvg', () => {
   const cases = [
-    { score: 92, tier: 'CERTIFIED REAL' },
-    { score: 74, tier: 'ALMOST REAL' },
-    { score: 53, tier: 'SUS' },
+    { score: 92, tier: 'LAUREATE' },
+    { score: 80, tier: 'GLADIATOR' },
+    { score: 30, tier: 'JESTER' },
   ] as const;
 
   for (const { score, tier } of cases) {
@@ -60,7 +60,7 @@ describe('badgeSvg', () => {
   }
 
   it('is self-contained: no external assets or webfonts', () => {
-    const svg = badgeSvg(92, 'CERTIFIED REAL');
+    const svg = badgeSvg(92, 'LAUREATE');
     // (The xmlns namespace URI is an identifier, not a fetched asset.)
     const withoutXmlns = svg.replace(/xmlns="[^"]*"/g, '');
     assert.ok(!withoutXmlns.includes('http://') && !withoutXmlns.includes('https://'), 'external URL leaked');

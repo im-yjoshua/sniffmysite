@@ -35,13 +35,13 @@ export interface WatchlistEntry {
 
 const watchlist = new Map<string, WatchlistEntry>();
 
-/** Tier order, best → worst. CERTIFIED REAL > ALMOST REAL > SUS > JUST VIBES > CERTIFIED FAKE. */
+/** Tier order, best → worst. LAUREATE > GLADIATOR > RECRUIT > JESTER > LION FOOD. */
 const TIER_RANK: Tier[] = [
-  'CERTIFIED REAL',
-  'ALMOST REAL',
-  'SUS',
-  'JUST VIBES',
-  'CERTIFIED FAKE',
+  'LAUREATE',
+  'GLADIATOR',
+  'RECRUIT',
+  'JESTER',
+  'LION FOOD',
 ];
 
 /** 10 points — a drop this size is a real product move, not a wiggle. */

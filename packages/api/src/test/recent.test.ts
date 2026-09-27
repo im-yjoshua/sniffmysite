@@ -31,7 +31,7 @@ function inputFor(host: string, sniff = 74): RecentScanInput {
     finalUrl: `https://${host}/some/landing/page`,
     vapor_score: 100 - sniff,
     sniff_score: sniff,
-    tier: sniff >= 81 ? 'CERTIFIED REAL' : sniff >= 61 ? 'ALMOST REAL' : 'SUS',
+    tier: sniff >= 90 ? 'LAUREATE' : sniff >= 75 ? 'GLADIATOR' : sniff >= 50 ? 'RECRUIT' : sniff >= 25 ? 'JESTER' : 'LION FOOD',
     scanned_at: new Date('2026-09-21T12:00:00Z').toISOString(),
   };
 }
@@ -46,7 +46,7 @@ describe('recordRecentScan', () => {
     assert.equal(rec.domain, 'example.org');
     assert.equal(rec.sniff_score, 74);
     assert.equal(rec.vapor_score, 26);
-    assert.equal(rec.tier, 'ALMOST REAL');
+    assert.equal(rec.tier, 'RECRUIT');
     assert.equal(rec.scanned_at, '2026-09-21T12:00:00.000Z');
   });
 

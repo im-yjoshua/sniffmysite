@@ -388,11 +388,11 @@ vaporRouter.get('/og/:slug.png', async (req, res) => {
  * is generous. Cached in memory keyed by the card's content hash.
  */
 const TIERS = [
-  'CERTIFIED REAL',
-  'ALMOST REAL',
-  'SUS',
-  'JUST VIBES',
-  'CERTIFIED FAKE',
+  'LAUREATE',
+  'GLADIATOR',
+  'RECRUIT',
+  'JESTER',
+  'LION FOOD',
 ] as const;
 const METRIC_KEYS = [
   'buzzword_density',

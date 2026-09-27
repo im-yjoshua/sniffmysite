@@ -99,7 +99,7 @@ describe('seed data', () => {
         domain,
         vapor_score: 0,
         sniff_score: 0,
-        tier: 'SUS' as const,
+        tier: 'RECRUIT' as const,
         metrics: {
           buzzword_density: 0,
           claim_to_proof: 0,

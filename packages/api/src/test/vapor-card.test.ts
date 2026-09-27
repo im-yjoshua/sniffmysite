@@ -30,11 +30,11 @@ import { _resetRateLimits } from '../lib/ratelimit';
 import type { MetricScores, ScoreEvidence } from '../lib/score';
 
 const TIERS: Tier[] = [
-  'CERTIFIED REAL',
-  'ALMOST REAL',
-  'SUS',
-  'JUST VIBES',
-  'CERTIFIED FAKE',
+  'LAUREATE',
+  'GLADIATOR',
+  'RECRUIT',
+  'JESTER',
+  'LION FOOD',
 ];
 
 const METRICS: MetricScores = {
@@ -68,7 +68,7 @@ const CARD_INPUT: VaporCardInput = {
   slug: 'hype.ai',
   domain: 'hype.ai',
   sniff_score: 22, // the PUBLIC number (was 78 vapor)
-  tier: 'JUST VIBES',
+  tier: 'JESTER',
   verdict: '22/100. This page is just vibes.',
   siteUrl: 'https://sniffmysite.lol',
   metrics: METRICS,
@@ -84,18 +84,18 @@ describe('rosette seal', () => {
   });
 
   it('gold for the prize, hazard red-orange for vibes, sad gray for fake', () => {
-    assert.equal(rosetteColor('CERTIFIED REAL'), '#B98A1D');
-    assert.equal(rosetteColor('JUST VIBES'), '#FF4D00');
-    assert.equal(rosetteColor('CERTIFIED FAKE'), '#9A958A');
+    assert.equal(rosetteColor('LAUREATE'), '#B98A1D');
+    assert.equal(rosetteColor('JESTER'), '#FF4D00');
+    assert.equal(rosetteColor('LION FOOD'), '#9A958A');
   });
 
   it('rosetteBadgeLines chunks tiers the same way the old stamp did', () => {
     // 1–2 words stay on one line; 3+ words chunk into two lines.
-    assert.deepEqual(rosetteBadgeLines('SUS'), ['SUS']);
-    assert.deepEqual(rosetteBadgeLines('ALMOST REAL'), ['ALMOST REAL']);
-    assert.deepEqual(rosetteBadgeLines('CERTIFIED REAL'), ['CERTIFIED REAL']);
-    assert.deepEqual(rosetteBadgeLines('CERTIFIED FAKE'), ['CERTIFIED FAKE']);
-    assert.deepEqual(rosetteBadgeLines('JUST VIBES'), ['JUST VIBES']);
+    assert.deepEqual(rosetteBadgeLines('RECRUIT'), ['RECRUIT']);
+    assert.deepEqual(rosetteBadgeLines('GLADIATOR'), ['GLADIATOR']);
+    assert.deepEqual(rosetteBadgeLines('LAUREATE'), ['LAUREATE']);
+    assert.deepEqual(rosetteBadgeLines('LION FOOD'), ['LION FOOD']);
+    assert.deepEqual(rosetteBadgeLines('JESTER'), ['JESTER']);
   });
 
   it('renders a serrated medal with ribbon tails and tier words for every tier', () => {
@@ -126,7 +126,7 @@ describe('rosette seal', () => {
 describe('cardJoke', () => {
   const input = (over: Partial<JokeInput> = {}): JokeInput => ({
     sniff_score: 22,
-    tier: 'JUST VIBES',
+    tier: 'JESTER',
     metrics: METRICS,
     evidence: EVIDENCE,
     ...over,
@@ -150,24 +150,24 @@ describe('cardJoke', () => {
   it('falls back to sniff-keyed tier closers when findings are thin', () => {
     const thin = { ...EVIDENCE, buzzword_hits: 1, top_phrases: [], claim_sentences: 0 };
     assert.ok(
-      cardJoke(input({ sniff_score: 94, tier: 'CERTIFIED REAL', evidence: thin })).includes('Grudgingly'),
+      cardJoke(input({ sniff_score: 94, tier: 'LAUREATE', evidence: thin })).includes('Grudgingly'),
       'high sniff: grudging respect',
     );
     assert.ok(
-      cardJoke(input({ sniff_score: 70, tier: 'ALMOST REAL', evidence: thin })).includes('So close'),
-      'almost real: damning with faint praise',
+      cardJoke(input({ sniff_score: 80, tier: 'GLADIATOR', evidence: thin })).includes('So close'),
+      'gladiator: damning with faint praise',
     );
     assert.ok(
-      cardJoke(input({ sniff_score: 50, tier: 'SUS', evidence: thin })).includes('sus'),
-      'sus closer',
+      cardJoke(input({ sniff_score: 50, tier: 'RECRUIT', evidence: thin })).includes('promise'),
+      'recruit closer',
     );
     assert.ok(
-      cardJoke(input({ sniff_score: 30, tier: 'JUST VIBES', evidence: thin })).includes('vibes'),
-      'just vibes closer',
+      cardJoke(input({ sniff_score: 30, tier: 'JESTER', evidence: thin })).includes('laughs'),
+      'jester closer',
     );
     assert.ok(
-      cardJoke(input({ sniff_score: 5, tier: 'CERTIFIED FAKE', evidence: thin })).includes('third adjective'),
-      'certified fake closer',
+      cardJoke(input({ sniff_score: 5, tier: 'LION FOOD', evidence: thin })).includes('lions'),
+      'lion food closer',
     );
   });
 
@@ -192,7 +192,7 @@ describe('buildVaporCardSVG', () => {
     assert.ok(svg.includes('SNIFF SCORE'), 'public label, not VAPOR SCORE');
     assert.ok(svg.includes('>22<'), 'the flipped number');
     assert.ok(!svg.includes('>78<'), 'the old vapor number is gone');
-    assert.ok(svg.includes('JUST VIBES'), 'tier name');
+    assert.ok(svg.includes('JESTER'), 'tier name');
   });
 
   it('carries SniffMySite branding and the canonical URL', () => {
@@ -259,7 +259,7 @@ describe('POST /api/vapor/card', () => {
     const res = await postBody({
       domain: 'hype.ai',
       sniff_score: 22,
-      tier: 'JUST VIBES',
+      tier: 'JESTER',
       verdict: '22/100. This page is just vibes.',
       metrics: METRICS,
       evidence: EVIDENCE,
@@ -276,7 +276,7 @@ describe('POST /api/vapor/card', () => {
     const res = await postBody({
       domain: 'hype.ai',
       vapor_score: 78,
-      tier: 'JUST VIBES',
+      tier: 'JESTER',
       verdict: 'x',
       metrics: METRICS,
     });
@@ -296,7 +296,7 @@ describe('POST /api/vapor/card', () => {
     const badScore = await postBody({
       domain: 'hype.ai',
       sniff_score: 140,
-      tier: 'SUS',
+      tier: 'RECRUIT',
       verdict: 'x',
       metrics: METRICS,
     });
@@ -304,7 +304,7 @@ describe('POST /api/vapor/card', () => {
     const badVapor = await postBody({
       domain: 'hype.ai',
       vapor_score: -3,
-      tier: 'SUS',
+      tier: 'RECRUIT',
       verdict: 'x',
       metrics: METRICS,
     });
@@ -316,7 +316,7 @@ describe('POST /api/vapor/card', () => {
     const res = await postBody({
       domain: 'clean.dev',
       sniff_score: 88,
-      tier: 'CERTIFIED REAL',
+      tier: 'LAUREATE',
       verdict: '88/100. Fine.',
       metrics: {
         buzzword_density: 5,

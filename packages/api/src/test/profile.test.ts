@@ -114,29 +114,29 @@ describe('getProfile', () => {
 
 describe('rosette badge pure helpers', () => {
   it('rosetteColor matches the per-tier palette', () => {
-    assert.equal(rosetteColor('CERTIFIED REAL'), '#B98A1D');
-    assert.equal(rosetteColor('CERTIFIED FAKE'), '#9A958A');
+    assert.equal(rosetteColor('LAUREATE'), '#B98A1D');
+    assert.equal(rosetteColor('LION FOOD'), '#9A958A');
     assert.deepEqual(Object.keys(ROSETTE_COLORS).sort(), [
-      'ALMOST REAL',
-      'CERTIFIED FAKE',
-      'CERTIFIED REAL',
-      'JUST VIBES',
-      'SUS',
+      'GLADIATOR',
+      'JESTER',
+      'LAUREATE',
+      'LION FOOD',
+      'RECRUIT',
     ]);
   });
 
   it('rosetteBadgeLines chunks tier names the same way the old stamp did', () => {
-    assert.deepEqual(rosetteBadgeLines('CERTIFIED REAL'), ['CERTIFIED REAL']);
-    assert.deepEqual(rosetteBadgeLines('SUS'), ['SUS']);
-    assert.deepEqual(rosetteBadgeLines('JUST VIBES'), ['JUST VIBES']);
-    assert.deepEqual(rosetteBadgeLines('ALMOST REAL'), ['ALMOST REAL']);
-    assert.deepEqual(rosetteBadgeLines('CERTIFIED FAKE'), ['CERTIFIED FAKE']);
+    assert.deepEqual(rosetteBadgeLines('LAUREATE'), ['LAUREATE']);
+    assert.deepEqual(rosetteBadgeLines('RECRUIT'), ['RECRUIT']);
+    assert.deepEqual(rosetteBadgeLines('JESTER'), ['JESTER']);
+    assert.deepEqual(rosetteBadgeLines('GLADIATOR'), ['GLADIATOR']);
+    assert.deepEqual(rosetteBadgeLines('LION FOOD'), ['LION FOOD']);
   });
 
   it('rosetteBadgeSVG renders the serrated medal, tier text, and ribbon tails', () => {
-    const svg = rosetteBadgeSVG('SUS', 100, 100, 60);
+    const svg = rosetteBadgeSVG('RECRUIT', 100, 100, 60);
     assert.ok(svg.includes('<polygon'), 'medal + ribbons');
-    assert.ok(svg.includes('SUS'), 'tier text');
+    assert.ok(svg.includes('RECRUIT'), 'tier text');
     // 24 teeth → 48 polygon points on the medal.
     const medal = svg.split('<polygon')[1];
     assert.equal(medal.split('points="')[1].split('"')[0].split(' ').length, 48);
@@ -147,7 +147,7 @@ describe('rosette badge pure helpers', () => {
       slug: 'character.ai',
       domain: 'character.ai',
       sniff_score: 47, // the PUBLIC number (was 53 vapor)
-      tier: 'SUS',
+      tier: 'RECRUIT',
       verdict: '47/100 — solidly sus.',
       siteUrl: 'https://sniffmysite.lol',
       metrics: {
@@ -163,7 +163,7 @@ describe('rosette badge pure helpers', () => {
     assert.ok(svg.includes('character.ai'));
     assert.ok(svg.includes('SNIFF SCORE'), 'public label');
     assert.ok(svg.includes('>47<'), 'flipped score present');
-    assert.ok(svg.includes('SUS'));
+    assert.ok(svg.includes('RECRUIT'));
     assert.ok(svg.includes('width="1200"') && svg.includes('height="630"'));
     assert.ok(svg.includes('https://sniffmysite.lol/s/character.ai'));
     assert.ok(svg.includes('we joke about the page, never the people.'));
@@ -175,7 +175,7 @@ describe('rosette badge pure helpers', () => {
   it('cardJoke is deterministic and evidence-based', () => {
     const input = {
       sniff_score: 47,
-      tier: 'SUS' as const,
+      tier: 'RECRUIT' as const,
       metrics: {
         buzzword_density: 80,
         claim_to_proof: 60,
@@ -195,7 +195,7 @@ describe('rosette badge pure helpers', () => {
       slug: 'evil.com',
       domain: 'evil<script>.com',
       sniff_score: 5,
-      tier: 'CERTIFIED FAKE',
+      tier: 'LION FOOD',
       verdict: '"><img src=x onerror=alert(1)>',
       siteUrl: 'https://sniffmysite.lol',
       metrics: {
@@ -221,7 +221,7 @@ describe('vapor-card render + cache', () => {
     slug: 'stripe.com',
     domain: 'stripe.com',
     sniff_score: 86, // the PUBLIC number
-    tier: 'CERTIFIED REAL' as const,
+    tier: 'LAUREATE' as const,
     verdict: '86/100. Fine. Prices are public, the claims stay in their lane. We checked twice.',
     siteUrl: 'https://sniffmysite.lol',
     metrics: {

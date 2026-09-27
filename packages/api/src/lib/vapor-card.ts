@@ -42,13 +42,14 @@ export interface VaporCardInput {
 // the tier name set across the middle, two ribbon tails hanging below.
 // ---------------------------------------------------------------------------
 
-/** Tier colors — Inspection Lab palette, all readable on paper. */
+/** Tier colors — the arena palette. LAUREATE gold, GLADIATOR slate,
+ * RECRUIT bronze-orange, JESTER torch-flame, LION FOOD muted stone. */
 export const ROSETTE_COLORS: Record<Tier, string> = {
-  'CERTIFIED REAL': '#B98A1D', // gold — the prize
-  'ALMOST REAL': '#6E7681', // silver/slate
-  SUS: '#D97A1F', // orange
-  'JUST VIBES': '#FF4D00', // hazard red-orange
-  'CERTIFIED FAKE': '#9A958A', // sad gray
+  LAUREATE: '#B98A1D', // gold — the prize
+  GLADIATOR: '#6E7681', // silver/slate — a proven fighter
+  RECRUIT: '#D97A1F', // bronze-orange — shows promise
+  JESTER: '#FF4D00', // torch flame — the crowd laughs
+  'LION FOOD': '#9A958A', // muted stone — thrown to the lions
 };
 
 export function rosetteColor(tier: Tier): string {
@@ -187,13 +188,12 @@ export function cardJoke(input: JokeInput): string {
     return `The judge counted ${buzz} hype-words and ${claims} grand claims before lunch. It stopped counting when lunch ended.`;
   }
   // Fallbacks keyed by tier — the sniff score only picks the wording.
-  if (sniff_score >= 81) return 'The judge re-checked this page twice. Grudgingly.';
-  if (sniff_score >= 61)
+  if (sniff_score >= 90) return 'The judge re-checked this page twice. Grudgingly.';
+  if (sniff_score >= 75)
     return 'One honest paragraph and this page would be unroastable. So close.';
-  if (sniff_score >= 41) return "The judge marked this page 'sus' and moved on.";
-  if (sniff_score >= 21)
-    return 'The judge found vibes where the features should be.';
-  return 'The judge stopped reading after the third adjective. Allegedly.';
+  if (sniff_score >= 50) return 'The arena sees promise. The arena also sees fear.';
+  if (sniff_score >= 25) return 'The crowd laughs. The features never showed up.';
+  return 'The lions are already circling. Allegedly.';
 }
 
 // ---------------------------------------------------------------------------
