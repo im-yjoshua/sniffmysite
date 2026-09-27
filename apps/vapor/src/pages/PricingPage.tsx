@@ -1,57 +1,41 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Zap } from 'lucide-react';
-import {
-  BILLING_PRODUCTS,
-  createCheckout,
-  ScanApiError,
-  type BillingProductKey,
-} from '../lib/api';
-
-const EMAIL_KEY = 'vaporrank_email';
+import { ArrowLeft } from 'lucide-react';
+import { MeanderDivider } from '../components/seals/MeanderDivider';
 
 /**
- * Pricing / "the lab's gift shop".
+ * Pricing — one product, one button.
  *
- * The money rule, learned the hard way: the lab sells exactly ONE thing —
- * the automated Priority Re-scan. No manual audits (a human service can't
- * ride an automated checkout), no self-serve banner sales (those are
- * handshake deals, handled personally after launch). Testing, rankings,
- * and sharing stay free forever.
+ * The shop sells exactly ONE thing: the Featured Roast ($19, one time).
+ * The button goes straight to Polar's hosted checkout — no API checkout,
+ * no email capture, no accounts. Polar collects the email and the
+ * website-url custom field; the webhook (A1) does the fulfillment.
+ *
+ * The law, stated twice so nobody misses it: paid money NEVER moves a
+ * score. The pin is labeled paid; the score is earned in the open by the
+ * same engine that judges everyone.
  */
+const POLAR_CHECKOUT_URL =
+  'https://polar.sh/checkout/polar_c_IkBGr7FMXefMQnwfmCKHGVO31NkAh0OMR6cuw1hnwNF';
+
+const STEPS = [
+  {
+    n: 'I',
+    title: 'Pay, and name your site.',
+    body: 'At checkout you enter your site\u2019s address. That\u2019s the whole form.',
+  },
+  {
+    n: 'II',
+    title: 'Your site jumps the line.',
+    body: 'Scanned first, roasted in full, and published for the crowd to see.',
+  },
+  {
+    n: 'III',
+    title: 'Pinned above the standings.',
+    body: 'Your roast holds the top of the board for 7 days \u2014 clearly labeled as paid.',
+  },
+];
+
 export function PricingPage() {
-  const [email, setEmail] = useState(
-    () => window.localStorage.getItem(EMAIL_KEY) ?? '',
-  );
-  const [buying, setBuying] = useState<BillingProductKey | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // The page sells the automated product only. Anything manual
-  // (audits, banners) is deliberately not on this shelf.
-  const products = BILLING_PRODUCTS.filter((p) => p.key === 'rescan');
-
-  const buy = async (product: BillingProductKey) => {
-    const trimmed = email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) {
-      setError('We need a real email to send your credits to.');
-      return;
-    }
-    setError(null);
-    setBuying(product);
-    window.localStorage.setItem(EMAIL_KEY, trimmed);
-    try {
-      const checkout = await createCheckout(product, trimmed);
-      window.location.href = checkout.checkout_url;
-    } catch (e) {
-      setBuying(null);
-      setError(
-        e instanceof ScanApiError && e.code === 'billing_not_configured'
-          ? 'Payments aren\u2019t switched on yet. The shop opens properly after launch — check back soon.'
-          : 'Something went wrong. Try again in a minute.',
-      );
-    }
-  };
-
   return (
     <main className="mx-auto max-w-6xl px-6 pb-16 pt-10 md:pt-14">
       {/* Header row */}
@@ -66,136 +50,87 @@ export function PricingPage() {
         </Link>
       </div>
 
-      <div className="flex flex-wrap items-start justify-between gap-6 py-10 md:py-14">
-        <div className="max-w-2xl">
-          <h1 className="font-inscription text-5xl font-bold uppercase tracking-tight md:text-6xl">
-            Skip the line.
-          </h1>
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
-            Testing is always free — the tests, the rankings, the sharing.
-            One paid extra, for founders in a hurry.
+      {/* The pitch */}
+      <div className="max-w-3xl py-10 md:py-14">
+        <h1 className="font-inscription text-5xl font-bold uppercase tracking-tight md:text-6xl">
+          Buy the spotlight.
+        </h1>
+        <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
+          Scanning is free. The standings are free. Sharing is free. There
+          is exactly one thing money buys in this arena &mdash; and it
+          isn&rsquo;t a score.
+        </p>
+      </div>
+
+      <MeanderDivider className="mb-10 md:mb-14" />
+
+      {/* The only product */}
+      <section aria-labelledby="featured-roast" className="border-y border-hairline py-10 md:py-12">
+        <p className="eyebrow text-ink-soft">The only product</p>
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-2">
+          <h2
+            id="featured-roast"
+            className="font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl"
+          >
+            Featured Roast
+          </h2>
+          <p className="font-data text-4xl font-bold tabular-nums text-hazard">
+            $19
+          </p>
+          <p className="font-data text-sm font-medium uppercase tracking-[0.18em] text-ink-faint">
+            One time &middot; no subscription
           </p>
         </div>
-        <TestModeBadge />
-      </div>
 
-      {/* Email capture — credits are keyed by email (no accounts in this version). */}
-      <div className="border-y border-hairline py-6">
-        <label
-          htmlFor="billing-email"
-          className="block font-data text-sm font-medium uppercase tracking-[0.18em] text-ink-soft"
-        >
-          Your email — that&rsquo;s where your credits go
-        </label>
-        <input
-          id="billing-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="founder@yourstartup.com"
-          autoComplete="email"
-          className="tap-target mt-3 w-full max-w-md border border-ink bg-paper px-4 py-3 font-data text-base text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-hazard"
-        />
-      </div>
-
-      {/* The one product — a hairline row, not a box-in-a-box. */}
-      <div>
-        {products.map((p) => {
-          const isBuying = buying === p.key;
-          return (
-            <div
-              key={p.key}
-              className="grid gap-4 border-b border-hairline py-8 md:grid-cols-[auto_1fr_auto] md:items-center md:gap-10"
-            >
-              <span className="text-ink" aria-hidden="true">
-                <Zap className="h-8 w-8" strokeWidth={1.75} />
-              </span>
-              <div>
-                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                  <h2 className="font-inscription text-3xl font-bold uppercase tracking-tight">
-                    {p.name}
-                  </h2>
-                  <p className="font-data text-3xl font-bold tabular-nums text-hazard">
-                    {p.priceDisplay}
-                  </p>
-                </div>
-                <p className="mt-2 max-w-xl text-lg leading-relaxed text-ink-soft">
-                  {p.tagline}
-                </p>
-                <p className="mt-2 font-data text-sm uppercase tracking-[0.18em] text-ink-faint">
-                  {p.creditLabel} · pay once, no subscription
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => buy(p.key)}
-                disabled={buying !== null}
-                className="tap-target inline-flex w-full shrink-0 items-center justify-center gap-2 bg-hazard px-6 py-3.5 font-data text-sm font-bold uppercase tracking-wider text-paper transition-colors hover:bg-hazard-deep disabled:cursor-wait disabled:opacity-60 md:w-auto"
+        <ol className="mt-8 grid gap-6 md:grid-cols-3 md:gap-8">
+          {STEPS.map((s) => (
+            <li key={s.n} className="border-t-2 border-ink pt-4">
+              <p
+                className="font-inscription text-2xl font-bold text-hazard"
+                aria-hidden="true"
               >
-                {isBuying ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2.25} />
-                    Opening checkout…
-                  </>
-                ) : (
-                  <>Buy {p.priceDisplay}</>
-                )}
-              </button>
-            </div>
-          );
-        })}
-      </div>
+                {s.n}
+              </p>
+              <p className="mt-2 text-lg font-semibold leading-snug">
+                {s.title}
+              </p>
+              <p className="mt-1 text-lg leading-relaxed text-ink-soft">
+                {s.body}
+              </p>
+            </li>
+          ))}
+        </ol>
 
-      {error && (
-        <p role="alert" className="mt-6 font-data text-sm text-hazard">
-          {error}
-        </p>
-      )}
+        <div className="mt-10">
+          <a
+            href={POLAR_CHECKOUT_URL}
+            className="tap-target inline-flex w-full items-center justify-center gap-2 bg-hazard px-8 py-4 font-data text-base font-bold uppercase tracking-wider text-paper transition-colors hover:bg-hazard-deep md:w-auto"
+          >
+            Get featured &mdash; $19
+          </a>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-soft">
+            Secure checkout by Polar. After payment your roast goes live on
+            its own &mdash; nothing else to do, no emails to wait for.
+          </p>
+        </div>
+      </section>
 
-      {/* Sponsorships: handshake deals, not a checkout button. */}
-      <div className="mt-16 border-t-2 border-ink pt-10">
-        <p className="eyebrow text-ink-soft">Sponsor the homepage</p>
-        <h2 className="mt-4 font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl">
-          Banners open after launch.
+      {/* The law */}
+      <section aria-labelledby="the-law" className="mt-14 md:mt-20">
+        <p className="eyebrow text-ink-soft">The law</p>
+        <h2
+          id="the-law"
+          className="mt-4 font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl"
+        >
+          Money can&rsquo;t buy a score.
         </h2>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
-          Homepage banners will be rented spots — clearly labeled{' '}
-          <strong>Sponsored</strong>, sold by handshake, not by checkout.
-          Money never moves a score. Not by a point, not ever.
+          No amount of money moves a score &mdash; not by a point, not ever.
+          The pin is labeled paid. The score is earned in the open, by the
+          same engine that judges everyone. If cash could buy rank, the whole
+          arena would be a joke. Not the funny kind.
         </p>
-      </div>
-
-      {/* Integrity line (§2.9). */}
-      <div className="mt-10 space-y-3">
-        <p className="font-inscription text-2xl font-bold uppercase tracking-tight">
-          Paid = re-test + badge. Never deleted.
-        </p>
-        <p className="max-w-2xl text-lg leading-relaxed text-ink-soft">
-          No amount of money deletes a score. A re-test buys a{' '}
-          <em>new</em> score — the whole journey is public, win or lose.
-          If cash could move a score, the whole board would be meaningless.
-        </p>
-      </div>
+      </section>
     </main>
-  );
-}
-
-/** Loud rotated badge so nobody mistakes test mode for real billing.
-    Reuses the lab's stamp language — same chunk, same ink. */
-function TestModeBadge() {
-  return (
-    <span
-      className="stamp"
-      role="note"
-      aria-label="Test mode: no real charge"
-      /* Fluid type: the full 16px slam on desktop, shrinking to 13px on
-         phones. The stamp is white-space: nowrap and runs ~370px wide at
-         16px — wider than a 360px viewport's content box — so without this
-         the whole page scrolls sideways. Padding and letter-spacing are
-         em-based, so they scale down with the type. Unchanged at ≥445px. */
-      style={{ fontSize: 'clamp(13px, 3.6vw, 1rem)' }}
-    >
-      Test mode · no real charge
-    </span>
   );
 }
