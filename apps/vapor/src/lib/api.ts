@@ -105,6 +105,37 @@ export async function fetchLeaderboard(
   );
 }
 
+/* ---- Featured Roast (Phase A: Polar fulfillment) ---- */
+
+/** The compact roast object the webhook stores on the pin row. */
+export interface FeaturedRoastSummary {
+  verdict?: string;
+  tier?: string;
+  score?: number;
+  scanned_at?: string;
+}
+
+export interface FeaturedRoast {
+  url: string;
+  slug: string | null;
+  score: number | null;
+  tier: string | null;
+  roast: FeaturedRoastSummary | null;
+  paid_at: string;
+  expires_at: string;
+}
+
+/**
+ * GET the currently pinned Sponsored Champion, if any.
+ * Null = the throne is empty. Throws ScanApiError on HTTP errors.
+ */
+export async function fetchFeatured(): Promise<FeaturedRoast | null> {
+  const data = await requestJson<{ featured: FeaturedRoast | null }>(
+    '/api/vapor/featured',
+  );
+  return data.featured;
+}
+
 export interface ApiHistoryEntry {
   algo_version: string;
   /** Internal vapor measurement (higher = more hype) — never displayed. */

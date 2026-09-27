@@ -11,6 +11,7 @@ import { CATEGORIES, categoryFor, type CategoryKey } from '../lib/categories';
 import { TierMark } from '../components/seals/TierMark';
 import { SiteLogo } from '../components/SiteLogo';
 import { JudgingCriteria } from '../components/JudgingCriteria';
+import { SponsoredChampionCard } from '../components/SponsoredChampionCard';
 
 const TABS: Array<{ key: LeaderboardSort; label: string }> = [
   { key: 'real', label: 'Most Real' },
@@ -134,6 +135,9 @@ export function LeaderboardPage() {
           : `${entries.length} startup pages tested and ranked.`}{' '}
         {TAB_SUBLINES[sort]} Think a score is wrong? Sniff the page again.
       </p>
+
+      {/* The paid pin above the board (Phase A). */}
+      <SponsoredChampionCard />
 
       {/* Category pills — actually filters the board. */}
       <div

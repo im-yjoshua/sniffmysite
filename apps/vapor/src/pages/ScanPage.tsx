@@ -534,6 +534,22 @@ export function ScanPage() {
             tier={result.tier}
           />
 
+          {/* The spotlight — the paid pin above the standings. */}
+          <section className="border-t border-hairline py-8 md:py-10" aria-label="Get featured">
+            <p className="eyebrow text-ink-faint">The spotlight</p>
+            <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
+              Proud of this roast? $19 pins your site above the standings
+              for 7 days &mdash; scanned first, roasted in full, labeled as
+              paid.
+            </p>
+            <Link
+              to="/pricing"
+              className="tap-target mt-4 inline-flex items-center justify-center bg-hazard px-6 py-3.5 font-data text-sm font-bold uppercase tracking-wider text-paper transition-colors hover:bg-hazard-deep"
+            >
+              Get featured &mdash; $19
+            </Link>
+          </section>
+
           {/* Founder claim — inline, two steps, no accounts. */}
           <ClaimCard domain={hostnameOf(result.url).replace(/^www\./i, '')} />
 
