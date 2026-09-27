@@ -12,11 +12,13 @@ import {
 /**
  * Phase A1 tests — Polar Standard Webhooks verification + event parsing.
  * The signer below implements the spec independently (it's the test's
- * oracle, not a copy of lib code): key = base64(secret), HMAC-SHA256 over
+ * oracle, not a copy of lib code): key = base64-DECODED dashboard secret
+ * (optional `whsec_` prefix stripped), HMAC-SHA256 over
  * "{id}.{timestamp}.{body}", token "v1,<base64>".
  */
 
-const SECRET = 'test_webhook_secret_abc123';
+// base64 of 'test_webhook_secret_abc123' — a well-formed dashboard-style secret
+const SECRET = 'dGVzdF93ZWJob29rX3NlY3JldF9hYmMxMjM=';
 
 function sign(
   id: string,
@@ -24,7 +26,9 @@ function sign(
   body: string,
   secret: string = SECRET,
 ): string {
-  const key = Buffer.from(secret, 'utf8').toString('base64');
+  let keyMaterial = secret;
+  if (keyMaterial.startsWith('whsec_')) keyMaterial = keyMaterial.slice('whsec_'.length);
+  const key = Buffer.from(keyMaterial, 'base64');
   const digest = crypto
     .createHmac('sha256', key)
     .update(`${id}.${timestamp}.${body}`, 'utf8')
@@ -53,6 +57,15 @@ describe('verifyPolarSignature', () => {
     const body = JSON.stringify({ type: 'order.paid', data: { id: 'ord_1' } });
     const get = headersFor('msg_1', TS, sign('msg_1', TS, body));
     assert.equal(verifyPolarSignature(Buffer.from(body), get, SECRET, NOW_MS), true);
+  });
+
+  it('accepts a whsec_-prefixed dashboard secret', () => {
+    // Polar dashboard secrets may carry a `whsec_` prefix; the verifier
+    // strips it before base64-decoding. Regression test: the old code
+    // base64-ENCODED the secret, which 401'd every real Polar delivery.
+    const body = JSON.stringify({ type: 'order.paid', data: { id: 'ord_1' } });
+    const get = headersFor('msg_1', TS, sign('msg_1', TS, body));
+    assert.equal(verifyPolarSignature(Buffer.from(body), get, `whsec_${SECRET}`, NOW_MS), true);
   });
 
   it('rejects a wrong secret', () => {

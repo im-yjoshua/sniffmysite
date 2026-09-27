@@ -11,10 +11,10 @@ import crypto from 'node:crypto';
  *   - The signature is HMAC-SHA256, base64-encoded, over
  *     `{webhook-id}.{webhook-timestamp}.{rawBody}` — the RAW bytes, never
  *     the parsed object.
- *   - Secret handling: the dashboard secret is base64-encoded BEFORE
- *     signing (the official SDK does this for you, so you pass the secret
- *     as-is). For a manual verifier that means the HMAC key is the UTF-8
- *     bytes of base64(secret). Polar secrets are NOT `whsec_`-prefixed.
+ *   - Secret handling: the dashboard secret is base64-encoded; the HMAC key
+ *     is the base64-DECODED bytes (this is what the `standardwebhooks`
+ *     library and Polar's own @polar-sh/sdk verifier do — they decode,
+ *     never encode). Strip an optional `whsec_` prefix first.
  *   - `webhook-signature` may carry several space-separated `v1,<base64>`
  *     tokens (key rotation); any match verifies.
  *   - The timestamp is seconds-since-epoch; we reject anything older than
@@ -52,9 +52,12 @@ export function verifyPolarSignature(
   const skew = Math.abs(nowMs / 1000 - ts);
   if (skew > TIMESTAMP_TOLERANCE_S) return false;
 
-  // The HMAC key is the UTF-8 bytes of base64(secret) — this mirrors what
-  // Polar's official SDK does with the dashboard secret passed as-is.
-  const key = Buffer.from(secret.trim(), 'utf8').toString('base64');
+  // Standard Webhooks: the dashboard secret is base64-encoded; the HMAC key
+  // is the DECODED bytes (mirrors the `standardwebhooks` library and Polar's
+  // own SDK verifier). Strip an optional `whsec_` prefix first.
+  let keyMaterial = secret.trim();
+  if (keyMaterial.startsWith('whsec_')) keyMaterial = keyMaterial.slice('whsec_'.length);
+  const key = Buffer.from(keyMaterial, 'base64');
   const signedContent = `${id}.${timestamp}.${rawBody.toString('utf8')}`;
   const digest = crypto
     .createHmac('sha256', key)
