@@ -12,6 +12,7 @@ import { ScanPage } from './pages/ScanPage';
 import { ComparePage } from './pages/ComparePage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { PricingPage } from './pages/PricingPage';
+import { RoastedPage } from './pages/RoastedPage';
 import { AdminSponsorsPage } from './pages/AdminSponsorsPage';
 import { SponsorSlot } from './components/SponsorSlot';
 import { fetchSponsors, type PublicSponsor } from './lib/api';
@@ -34,6 +35,8 @@ export function App() {
         <Route path="/battle" element={<ComparePage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        {/* Polar success URL (?checkout_id=… is display-only). */}
+        <Route path="/roasted" element={<RoastedPage />} />
         {/* Internal: banner approvals. Not linked from the site. */}
         <Route path="/admin/sponsors" element={<AdminSponsorsPage />} />
         <Route path="*" element={<NotFound />} />
