@@ -29,8 +29,8 @@ const TAB_SUBLINES: Record<LeaderboardSort, string> = {
 };
 
 /**
- * Hall of Vapor — the full sortable board (§2.3, Task 6).
- * Hairline-separated rows, tabular mono scores, mini rosette seals — a lab
+ * The standings — the full sortable board.
+ * Hairline-separated rows, tabular mono scores, mini seals — the standings
  * ledger, not a dashboard. Data is real: engine-scored public landing pages.
  */
 export function LeaderboardPage() {
@@ -126,7 +126,7 @@ export function LeaderboardPage() {
         The official ranking
       </p>
       <h1 className="mt-4 font-inscription text-5xl font-bold tracking-tight md:text-6xl">
-        Hall of Vapor
+        The Standings
       </h1>
       <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
         {entries === null
@@ -249,7 +249,7 @@ export function LeaderboardPage() {
                   className="row-in group flex w-full items-center gap-3 border-b border-hairline py-4 transition-transform duration-150 hover:-translate-y-px focus-within:-translate-y-px sm:gap-4"
                 >
                   <Link
-                    to={`/s/${e.domain}`}
+                    to={`/scan?url=${encodeURIComponent(`https://${e.domain}`)}`}
                     title={`Open the ${e.domain} report`}
                     className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4"
                   >

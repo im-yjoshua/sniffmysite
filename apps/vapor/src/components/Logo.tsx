@@ -1,5 +1,5 @@
 /**
- * VaporRank logo mark — custom SVG, one color (§2.7).
+ * SniffMySite logo mark — custom SVG, one color (§2.7).
  * A nose's scent lines rising off an ascending bar chart.
  * The tallest bar carries the hazard accent; everything else is ink.
  */

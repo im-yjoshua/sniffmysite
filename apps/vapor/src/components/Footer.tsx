@@ -77,12 +77,6 @@ const SITE_LINKS = [
   { to: '/pricing', label: 'Pricing' },
 ];
 
-const FOUNDER_LINKS = [
-  { to: '/verify', label: 'Claim your page' },
-  { to: '/launch', label: 'Roast my launch' },
-  { to: '/pricing', label: 'Audits & re-scans' },
-];
-
 function LinkColumn({
   title,
   links,
@@ -175,11 +169,6 @@ export function Footer() {
               title="The site"
               links={SITE_LINKS}
               ariaLabel="Site"
-            />
-            <LinkColumn
-              title="Founders"
-              links={FOUNDER_LINKS}
-              ariaLabel="For founders"
             />
           </div>
         </div>

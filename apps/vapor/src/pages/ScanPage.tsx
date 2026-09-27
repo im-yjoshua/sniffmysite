@@ -180,8 +180,8 @@ export function hostnameOf(url: string): string {
 
 /**
  * The scan result page (§2.3 `/scan?url=…`, Task 5).
- * A lab report, not a dashboard: hairline rules, big whitespace, mono data
- * type, and the rosette seal as the hero moment. Reveal sequence is staged —
+ * A judgment, not a dashboard: hairline rules, big whitespace, mono data
+ * type, and the thumb seal as the hero moment. Reveal sequence is staged —
  * the score counts up first, THEN the verdict seal slams in, like a lab
  * result being certified.
  */
@@ -481,7 +481,7 @@ export function ScanPage() {
 
       {phase === 'done' && result && (
         <div aria-live="polite">
-          {/* The verdict moment: number first, rosette seal second. */}
+          {/* The verdict moment: number first, thumb seal second. */}
           <div className="flex flex-wrap items-end gap-x-8 gap-y-8 py-10 md:gap-x-12 md:py-14">
             <div>
               <p className="eyebrow text-ink-faint">
@@ -580,12 +580,6 @@ export function ScanPage() {
                 </>
               )}
             </p>
-            <Link
-              to={`/s/${hostnameOf(result.url)}`}
-              className="tap-target mt-4 inline-flex items-center font-data text-sm font-medium uppercase tracking-[0.18em] text-hazard hover:underline"
-            >
-              Full report →
-            </Link>
           </section>
           {shareOpen && (
             <SharePopup

@@ -1,5 +1,5 @@
 /**
- * Specimen categories — frontend metadata ONLY (§2.13 polish batch).
+ * Site categories — frontend metadata ONLY (§2.13 polish batch).
  *
  * These are labels, not data: they come from the fixed 20-site fixture suite
  * (packages/api/src/test/fixtures), which is already mostly AI startups.

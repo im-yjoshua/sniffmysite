@@ -1,5 +1,5 @@
 /**
- * VaporRank API client (Task 5–8).
+ * SniffMySite API client.
  * Talks to the shared Express API (`POST /api/vapor/scan`, live since Task 4;
  * `GET /api/vapor/leaderboard`, live since Task 6;
  * `POST /api/vapor/claim` + `POST /api/vapor/claim/verify`, live since Task 8).
@@ -96,7 +96,7 @@ export interface ApiLeaderboard {
   entries: ApiLeaderboardEntry[];
 }
 
-/** GET the Hall of Vapor board. Throws ScanApiError on HTTP errors. */
+/** GET the standings board. Throws ScanApiError on HTTP errors. */
 export async function fetchLeaderboard(
   sort: LeaderboardSort,
 ): Promise<ApiLeaderboard> {
@@ -115,36 +115,7 @@ export interface ApiHistoryEntry {
   scanned_at: string;
 }
 
-export interface ApiStartupProfile {
-  slug: string;
-  domain: string;
-  name: string;
-  current: {
-    /** Internal vapor measurement (higher = more hype) — never displayed. */
-    vapor_score: number;
-    /** THE public number: 100 − vapor_score. Higher = more real. */
-    sniff_score: number;
-    tier: TierLabel;
-    metrics: MetricScores;
-    /** Raw counts behind the score — served by the profile endpoint. */
-    evidence: ScoreEvidence;
-    verdict: string;
-    algo_version: string;
-    scanned_at: string;
-    snapshot_hash: string;
-  };
-  /** Score history, newest first. Single v1 chapter until re-scans land. */
-  history: ApiHistoryEntry[];
-}
-
-/** GET a specimen dossier. Throws ScanApiError (404 startup_not_found, 400 invalid_slug). */
-export async function fetchStartupProfile(slug: string): Promise<ApiStartupProfile> {
-  return requestJson<ApiStartupProfile>(
-    `/api/vapor/startup/${encodeURIComponent(slug)}`,
-  );
-}
-
-/** Absolute URL of the per-profile OG share card PNG (Task 7). */
+/** Absolute URL of the per-profile OG share card PNG. */
 export function ogCardUrl(slug: string): string {
   return `${API_URL}/api/vapor/og/${encodeURIComponent(slug)}.png`;
 }
@@ -529,7 +500,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
  * Mirrors packages/api/src/lib/recent.ts — host only, never full URLs.
  */
 export interface ApiRecentScan {
-  /** Normalized domain — doubles as the dossier slug. */
+  /** Normalized domain — doubles as the profile slug. */
   slug: string;
   /** Host only, no scheme/path. */
   domain: string;
@@ -540,7 +511,7 @@ export interface ApiRecentScan {
   tier: TierLabel;
   /** ISO timestamp of the scan. */
   scanned_at: string;
-  /** True when /s/:slug has a dossier for this scan. */
+  /** Legacy profile flag from the API (dossiers cut; unused). */
   has_profile: boolean;
 }
 
@@ -566,7 +537,7 @@ export async function fetchRecentScans(): Promise<ApiRecentScan[]> {
  * packages/api/src/lib/recent.ts — host only, never full URLs.
  */
 export interface ApiTrendingHost {
-  /** Normalized domain — doubles as the dossier slug. */
+  /** Normalized domain — doubles as the profile slug. */
   host: string;
   slug: string;
   /** How many successful scans this host has had. */
@@ -574,7 +545,7 @@ export interface ApiTrendingHost {
   /** The sniff score of the latest successful scan. */
   latest_sniff_score: number;
   tier: TierLabel;
-  /** True when /s/:slug has a dossier for this host. */
+  /** Legacy profile flag from the API (dossiers cut; unused). */
   has_profile: boolean;
 }
 
@@ -601,14 +572,14 @@ export type MoversWindow = '7d' | '30d';
  * new_score − old_score; positive = the page got MORE real.
  */
 export interface ApiMoverRow {
-  /** Normalized domain — doubles as the dossier slug. */
+  /** Normalized domain — doubles as the profile slug. */
   slug: string;
   domain: string;
   old_score: number;
   new_score: number;
   delta: number;
   tier: TierLabel;
-  /** True when /s/:slug has a dossier for this host. */
+  /** Legacy profile flag from the API (dossiers cut; unused). */
   has_profile: boolean;
 }
 

@@ -6,7 +6,7 @@ import { fetchCredits } from '../lib/api';
 export const PRIORITY_EMAIL_KEY = 'vaporrank_email';
 
 /**
- * The priority lane strip on the lab report (Task 9, made real in Task 10).
+ * The priority lane strip on the judgment (Task 9, made real in Task 10).
  * Credits are keyed by email — no auth in the MVP. Shows the balance and
  * hands the email to the scan: the SERVER spends one credit inside the scan
  * and jumps the rate-limit line. A rejected scan never eats a credit.

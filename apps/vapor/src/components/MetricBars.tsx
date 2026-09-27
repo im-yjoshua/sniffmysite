@@ -7,7 +7,7 @@ import { CHECK_INFO, findingFor } from '../lib/score-explainer';
  * Each check reads like a mini verdict: a human sentence leads, the bar and
  * the number back it up. Weights are shown in words ("counts the most"),
  * never percentages-as-math. Ink bars — hazard stays reserved for scores,
- * rosettes, and CTAs.
+ * seals, and CTAs.
  *
  * The bars are smell-intensity bars, keyed the engine's way (0–100, higher
  * = more smell): they explain what kept the page from a perfect 100.

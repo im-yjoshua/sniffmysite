@@ -16,7 +16,7 @@ function logoSources(domain: string): string[] {
 }
 
 /**
- * The specimen's own logo — pulled client-side from public favicon
+ * The site's own logo — pulled client-side from public favicon
  * services, with a fallback chain. The monogram tile is always rendered
  * underneath: it holds the box's exact size (no layout shift while the
  * favicon loads) and it is what you see if every source fails or is

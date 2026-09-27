@@ -7,8 +7,7 @@ import { TierMark } from './seals/TierMark';
  * "Most sniffed" — the trending board (§2.12 depth feature).
  * Fed by GET /api/vapor/trending (host only, never full URLs), ranked by
  * total successful scans. Each row: rank, host, latest sniff score + mini
- * rosette, and the sniff count. Rows link to the dossier (/s/:slug) when
- * one exists, otherwise to a scan of that host.
+ * seal, and the sniff count. Rows link to the scan judgment.
  *
  * Honest states only: the empty tally gets a quiet "be the first" line —
  * never fabricated rows. If the API is unreachable the whole section hides.
@@ -52,9 +51,8 @@ export function TrendingBoard() {
         ) : (
           <ol className="mt-8">
             {hosts.map((h, i) => {
-              const to = h.has_profile
-                ? `/s/${h.slug}`
-                : `/scan?url=${encodeURIComponent(`https://${h.host}`)}`;
+              // Dossiers are cut: every row links to the scan judgment.
+              const to = `/scan?url=${encodeURIComponent(`https://${h.host}`)}`;
               return (
                 <li
                   key={h.slug}

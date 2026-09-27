@@ -9,9 +9,10 @@ import type { TierLabel } from '../lib/tiers';
  * wants to display is dead inventory, so this renders ONLY for the top
  * two tiers — everyone else simply doesn't get offered one.
  *
- * The snippet links the badge back to the dossier (`/s/:slug`): every
- * pasted badge is a billboard and a backlink. The <img> src is the
- * absolute API URL, so it works on any site it's pasted into.
+ * The snippet links the badge back to the site's judgment
+ * (`/scan?url=…`): every pasted badge is a billboard and a backlink.
+ * The <img> src is the absolute API URL, so it works on any site
+ * it's pasted into.
  */
 
 const BADGE_TIERS: ReadonlySet<TierLabel> = new Set([
@@ -36,7 +37,7 @@ export function BadgeSnippet({
   if (!BADGE_TIERS.has(tier)) return null;
 
   const snippet =
-    `<a href="${SITE_URL}/s/${slug}">` +
+    `<a href="${SITE_URL}/scan?url=${encodeURIComponent(`https://${slug}`)}">` +
     `<img src="${badgeUrl(slug)}" alt="SniffMySite score: ${sniffScore}/100 — ${tier}">` +
     `</a>`;
 

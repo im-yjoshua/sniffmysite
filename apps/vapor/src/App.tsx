@@ -8,23 +8,17 @@ import { Leaderboard } from './components/Leaderboard';
 import { TrendingBoard } from './components/TrendingBoard';
 import { ScanPage } from './pages/ScanPage';
 import { ComparePage } from './pages/ComparePage';
-import { LaunchPage } from './pages/LaunchPage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
-import { MoversPage } from './pages/MoversPage';
-import { StartupProfilePage } from './pages/StartupProfilePage';
-import { VerifyPage } from './pages/VerifyPage';
 import { PricingPage } from './pages/PricingPage';
 import { AdminSponsorsPage } from './pages/AdminSponsorsPage';
 import { SponsorSlot } from './components/SponsorSlot';
 import { fetchSponsors, type PublicSponsor } from './lib/api';
 
 /**
- * VaporRank app shell (Task 8: claim flow added).
- * Routes: `/` landing (§2.3), `/scan?url=…` lab report (Task 5),
- * `/leaderboard` Hall of Vapor (Task 6), `/s/:slug` specimen dossier (Task 7),
- * `/verify` claim the listing (Task 8),
- * `/pricing` the lab's gift shop (Task 9),
- * `/compare` head-to-head sniff-off (§2.12).
+ * SniffMySite app shell.
+ * Routes: `/` the arena (§2.3), `/scan?url=…` the judgment (Task 5),
+ * `/leaderboard` the standings (Task 6), `/battle` head-to-head (§2.12),
+ * `/pricing` the gift shop (Task 9). `/admin/sponsors` stays hidden.
  */
 export function App() {
   return (
@@ -35,12 +29,8 @@ export function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/scan" element={<ScanPage />} />
-        <Route path="/compare" element={<ComparePage />} />
+        <Route path="/battle" element={<ComparePage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
-        <Route path="/movers" element={<MoversPage />} />
-        <Route path="/launch" element={<LaunchPage />} />
-        <Route path="/s/:slug" element={<StartupProfilePage />} />
-        <Route path="/verify" element={<VerifyPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         {/* Internal: banner approvals. Not linked from the site. */}
         <Route path="/admin/sponsors" element={<AdminSponsorsPage />} />
@@ -54,7 +44,7 @@ export function App() {
 
 /**
  * react-router doesn't scroll on navigation by default. This handles both:
- * same-route hash links (/#hall-of-vapor) and scroll-to-top on page change.
+ * same-route hash links (/#sniff, /leaderboard#how-it-works) and scroll-to-top on page change.
  */
 function ScrollManager() {
   const { pathname, hash } = useLocation();
@@ -90,8 +80,8 @@ function ScrollManager() {
 
 function LandingPage() {
   // When a leaderboard row's "sniff again" is clicked, the domain is seeded
-  // into the hero scan box. The /launch page uses the same mechanism via
-  // location state: navigate('/#sniff', { state: { seedUrl } }).
+  // into the hero scan box via location state:
+  // navigate('/#sniff', { state: { seedUrl } }).
   const [scanSeed, setScanSeed] = useState('');
   const location = useLocation();
   useEffect(() => {
@@ -144,7 +134,7 @@ function LandingPage() {
             <p className="mt-3 text-sm uppercase tracking-[0.14em] text-ink-faint">
               Got two pages?{' '}
               <Link
-                to="/compare"
+                to="/battle"
                 className="tap-target inline-flex items-center font-medium text-hazard-ink underline decoration-hazard-ink/40 underline-offset-4 hover:decoration-hazard-ink"
               >
                 Pit them against each other

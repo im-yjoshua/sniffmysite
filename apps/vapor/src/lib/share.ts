@@ -1,7 +1,7 @@
 /**
  * Share-text builders for the viral loops. Pure functions — the caller
  * passes `window.location.origin` in — so the copy stays testable and
- * identical everywhere it's used. No emojis anywhere; Inspection Lab
+ * identical everywhere it's used. No emojis anywhere; arena voice
  * voice, plain 5th-grade words.
  */
 

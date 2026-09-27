@@ -15,9 +15,9 @@ interface LeaderboardProps {
 }
 
 /**
- * Hall of Vapor leaderboard preview — top 10 most real, real engine scores
+ * Standings preview — top 10 most real, real engine scores
  * (§2.3). Hairline-separated rows (not cards), tabular mono sniff scores,
- * rosette seals. Rows stagger in on load; hover lifts 1px and reveals
+ * seal marks. Rows stagger in on load; hover lifts 1px and reveals
  * the "sniff again" affordance (§2.7). Sorted the same way as the
  * /leaderboard default (Most Real) so the two never disagree.
  */
@@ -40,7 +40,7 @@ export function Leaderboard({ onSniffAgain }: LeaderboardProps) {
   }, []);
 
   return (
-    <section id="hall-of-vapor" aria-label="Hall of Vapor leaderboard" className="w-full">
+    <section id="standings" aria-label="Standings leaderboard" className="w-full">
       {/* flex-wrap + min-w-0: on a 320px phone the "Top 10 · most real
           first" eyebrow (~250px, was shrink-0) plus the title exceeded the
           column, and the hero grid's min-width:auto refused to shrink —
@@ -48,7 +48,7 @@ export function Leaderboard({ onSniffAgain }: LeaderboardProps) {
           drops to its own line instead of forcing overflow. */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b-2 border-ink pb-3">
         <h2 className="min-w-0 font-inscription text-2xl font-bold uppercase tracking-tight">
-          Hall of Vapor
+          The Standings
         </h2>
         <span className="eyebrow min-w-0 text-ink-faint">
           Top 10 · most real first

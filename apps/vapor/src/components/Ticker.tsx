@@ -24,9 +24,9 @@ function dedupeBySlug(list: ApiRecentScan[]): ApiRecentScan[] {
  * "Latest sniffs" ticker — a quiet marquee tape of the most recent
  * successful scans, fed by GET /api/vapor/recent (newest first, host only).
  *
- * Each item: the site's host, its sniff score, and a 28px rosette in the
- * tier's color. Items link to the dossier (/s/:slug) when one exists,
- * otherwise to a scan of that host. Polls every 20s so fresh scans appear
+ * Each item: the site's host, its sniff score, and a 28px seal in the
+ * tier's color. Items link to the scan judgment.
+ * Polls every 20s so fresh scans appear
  * without a reload — paused while the tab is hidden, one refresh on
  * return. Pauses on hover AND on focus-within;
  * prefers-reduced-motion renders a static list (see index.css). On a fetch
@@ -85,9 +85,8 @@ export function Ticker() {
 }
 
 function TickerItem({ scan, hidden }: { scan: ApiRecentScan; hidden: boolean }) {
-  const to = scan.has_profile
-    ? `/s/${scan.slug}`
-    : `/scan?url=${encodeURIComponent(`https://${scan.domain}`)}`;
+  // Dossiers are cut: every row links to the scan judgment.
+  const to = `/scan?url=${encodeURIComponent(`https://${scan.domain}`)}`;
   return (
     <span aria-hidden={hidden || undefined} className="mx-5 shrink-0">
       <Link
