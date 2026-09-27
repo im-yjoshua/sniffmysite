@@ -5,6 +5,7 @@ import { VerdictReveal } from '../components/VerdictReveal';
 import { MetricBars } from '../components/MetricBars';
 import { SharePopup } from '../components/SharePopup';
 import { BadgeSnippet } from '../components/BadgeSnippet';
+import { ClaimCard } from '../components/ClaimCard';
 import { RandomSniffButton } from '../components/ScanBox';
 import { PriorityStrip } from '../components/PriorityStrip';
 import { TurnstileWidget } from '../components/TurnstileWidget';
@@ -532,6 +533,9 @@ export function ScanPage() {
             sniffScore={result.sniff_score}
             tier={result.tier}
           />
+
+          {/* Founder claim — inline, two steps, no accounts. */}
+          <ClaimCard domain={hostnameOf(result.url).replace(/^www\./i, '')} />
 
           {/* Scan details — quiet mono meta line (§2.12). */}          <section className="border-t border-hairline py-6" aria-label="Scan details">
             <p className="break-all font-data text-sm leading-relaxed text-ink-faint">

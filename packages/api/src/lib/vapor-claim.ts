@@ -209,6 +209,6 @@ export function claimInstructions(token: string): string[] {
     'Sign in to your DNS provider — wherever the domain\u2019s nameservers live.',
     `Add a TXT record: host "${VAPOR_TXT_HOST}", value "${txtRecordValue(token)}".`,
     'Save it. DNS propagates on its own schedule, not ours — usually minutes, sometimes hours.',
-    'Hit "Check verification" below. The token stays valid for 7 days; the lab will keep checking.',
+    'Hit "Check verification" below. The token stays valid for 7 days; we will keep checking.',
   ];
 }

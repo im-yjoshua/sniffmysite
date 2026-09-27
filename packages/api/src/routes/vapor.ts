@@ -540,7 +540,7 @@ vaporRouter.post(
       detail:
         outcome.error === 'invalid_domain'
           ? 'Provide a "domain" string, e.g. "stripe.com".'
-          : `No dossier on file for that domain. Only board-listed specimens can be claimed.`,
+          : `No record on file for that domain. Only ranked pages can be claimed — sniff it first.`,
     });
   }
   const r = outcome.record;
