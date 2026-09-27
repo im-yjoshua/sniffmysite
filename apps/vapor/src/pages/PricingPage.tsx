@@ -15,7 +15,7 @@ import { MeanderDivider } from '../components/seals/MeanderDivider';
  * same engine that judges everyone.
  */
 const POLAR_CHECKOUT_URL =
-  'https://polar.sh/checkout/polar_c_IkBGr7FMXefMQnwfmCKHGVO31NkAh0OMR6cuw1hnwNF';
+  'https://buy.polar.sh/polar_cl_vGWoiToDhNX81DJJuQirCyn3MbwmTQ9cfZhuo02Ugt0';
 
 const STEPS = [
   {
