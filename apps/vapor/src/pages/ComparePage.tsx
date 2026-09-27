@@ -14,7 +14,7 @@ import {
 import { toLabError, hostnameOf, type LabError } from './ScanPage';
 
 /**
- * The sniff-off: two pages, one nose (§2.12 depth feature, `/compare`).
+ * The battle: two pages, one nose. Route `/battle`.
  * Runs two real POST /api/vapor/scan tests side by side — each counts
  * against the normal 30/hr scan budget (the UI says so honestly).
  *
@@ -24,7 +24,7 @@ import { toLabError, hostnameOf, type LabError } from './ScanPage';
  * gaps.
  *
  * Challenge links: /compare?a=stripe.com&b=lemonsqueezy.com pre-fills
- * both inputs and auto-runs the sniff-off when both are valid and
+ * both inputs and auto-runs the battle when both are valid and
  * different. Invalid params show the normal form with a friendly error —
  * never a wasted scan. Once both sides land, a challenge block offers
  * pre-written X/LinkedIn posts plus a copy-link button that replays the
@@ -58,12 +58,12 @@ function canonical(raw: string): string {
   return s;
 }
 
-/** Budget honesty for a sniff-off side that hit the scan-budget wall. */
+/** Budget honesty for a battle side that hit the scan-budget wall. */
 function budgetError(): LabError {
   return {
     title: 'Out of free tests.',
     detail:
-      'A sniff-off runs two tests, and each one counts against your 30 free tests per hour — this side hit the limit.',
+      'A battle runs two tests, and each one counts against your 30 free tests per hour — this side hit the limit.',
     primary: 'retry',
   };
 }
@@ -172,12 +172,12 @@ export function ComparePage() {
     <main className="mx-auto max-w-6xl px-6 pb-16 pt-10 md:pt-14">
       <div className="border-b-2 border-ink pb-4">
         <p className="eyebrow text-ink-soft">Head to head</p>
-        <h1 className="mt-3 font-inscription text-5xl font-bold tracking-tight md:text-6xl">
-          The sniff-off<span className="text-hazard">.</span>
+        <h1 className="mt-3 font-inscription text-5xl font-bold uppercase tracking-tight md:text-6xl">
+          The Battle<span className="text-hazard">.</span>
         </h1>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
-          Two pages. One nose. Paste two startup pages and find out which one
-          smells worse. Each side gets a full test, run side by side.
+          Two pages enter. The score decides — no votes, no judges, no
+          mercy. Each side gets a full test, run side by side.
         </p>
       </div>
 
@@ -186,13 +186,13 @@ export function ComparePage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label
-              htmlFor="sniff-off-a"
+              htmlFor="battle-a"
               className="font-data text-sm font-bold uppercase tracking-[0.18em] text-ink-soft"
             >
-              Page one
+              Contender one
             </label>
             <input
-              id="sniff-off-a"
+              id="battle-a"
               type="text"
               inputMode="url"
               autoComplete="off"
@@ -206,13 +206,13 @@ export function ComparePage() {
           </div>
           <div>
             <label
-              htmlFor="sniff-off-b"
+              htmlFor="battle-b"
               className="font-data text-sm font-bold uppercase tracking-[0.18em] text-ink-soft"
             >
-              Page two
+              Contender two
             </label>
             <input
-              id="sniff-off-b"
+              id="battle-b"
               type="text"
               inputMode="url"
               autoComplete="off"
@@ -236,7 +236,7 @@ export function ComparePage() {
             className="tap-target inline-flex items-center gap-2 bg-hazard px-6 py-3.5 font-data text-sm font-bold uppercase tracking-wider text-paper transition-colors hover:bg-hazard-deep"
           >
             <Swords className="h-5 w-5" strokeWidth={2.25} />
-            Start the sniff-off
+            Begin the battle
           </button>
           <p className="text-[13px] uppercase tracking-[0.14em] text-ink-faint">
             Honest math: two tests — each counts against your 30 free tests
@@ -248,8 +248,8 @@ export function ComparePage() {
       {/* The verdict, once both tests land. */}
       {verdict && (
         <section className="mt-12 border-y-2 border-ink py-10" aria-live="polite">
-          <p className="eyebrow text-ink-faint">The verdict</p>
-          <h2 className="mt-3 max-w-3xl font-inscription text-3xl font-bold leading-snug tracking-tight md:text-5xl">
+          <p className="eyebrow text-ink-faint">The decision</p>
+          <h2 className="mt-3 max-w-3xl font-inscription text-3xl font-bold uppercase leading-snug tracking-tight md:text-5xl">
             {verdict.headline}
           </h2>
           <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -267,7 +267,7 @@ export function ComparePage() {
       <div className="mt-10 grid gap-8 md:grid-cols-2">
         <SideCard
           key="a"
-          label="Page one"
+          label="Contender one"
           url={urlA}
           state={sideA}
           onRetry={() => runSideAgain('a')}
@@ -285,7 +285,7 @@ export function ComparePage() {
         </div>
         <SideCard
           key="b"
-          label="Page two"
+          label="Contender two"
           url={urlB}
           state={sideB}
           onRetry={() => runSideAgain('b')}
@@ -321,14 +321,14 @@ function scoreDiffVerdict(a: ApiScanResult, b: ApiScanResult): Verdict {
   const hostB = hostnameOf(b.url);
   if (a.sniff_score > b.sniff_score) {
     return {
-      headline: `${hostA} takes the sniff-off.`,
+      headline: `${hostA} wins the battle.`,
       subline: `${a.sniff_score} to ${b.sniff_score}. ${hostB}'s page had more to hide — the nose noticed.`,
       winner: 'a',
     };
   }
   if (b.sniff_score > a.sniff_score) {
     return {
-      headline: `${hostB} takes the sniff-off.`,
+      headline: `${hostB} wins the battle.`,
       subline: `${b.sniff_score} to ${a.sniff_score}. ${hostA}'s page had more to hide — the nose noticed.`,
       winner: 'b',
     };
@@ -394,11 +394,11 @@ function ChallengeBlock({ a, b }: { a: ApiScanResult; b: ApiScanResult }) {
       aria-label="Challenge a founder"
     >
       <p className="eyebrow text-ink-faint">Throw down the gauntlet</p>
-      <h2 className="mt-3 font-inscription text-3xl font-bold tracking-tight md:text-4xl">
+      <h2 className="mt-3 font-inscription text-3xl font-bold uppercase tracking-tight md:text-4xl">
         Think {hostB} can do better?
       </h2>
       <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-soft">
-        Post this sniff-off and dare them to answer. The link replays the
+        Post this battle and dare them to answer. The link replays the
         exact same matchup for anyone who opens it.
       </p>
       <blockquote className="mt-5 max-w-2xl border-l-2 border-hazard pl-4 text-lg leading-relaxed text-ink">
@@ -468,13 +468,13 @@ function SideCard({
       <p className="eyebrow text-ink-faint">
         {label}
         {winner === sideKey && (
-          <span className="ml-3 text-hazard">Sniff-off champion</span>
+          <span className="ml-3 text-hazard">Battle champion</span>
         )}
       </p>
 
       {state.phase === 'idle' && (
         <p className="mt-6 text-lg leading-relaxed text-ink-faint">
-          Waiting for a page. Paste an address above and start the sniff-off.
+          Waiting for a page. Paste an address above and begin the battle.
         </p>
       )}
 
@@ -499,7 +499,7 @@ function SideCard({
 
       {state.phase === 'error' && (
         <div className="mt-6" role="alert">
-          <h2 className="max-w-xl font-inscription text-2xl font-bold tracking-tight md:text-3xl">
+          <h2 className="max-w-xl font-inscription text-2xl font-bold uppercase tracking-tight md:text-3xl">
             {state.error.title}
           </h2>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -597,7 +597,7 @@ function MetricDiffs({ a, b }: { a: ApiScanResult; b: ApiScanResult }) {
                 className="grid min-w-0 gap-2 border-t border-hairline py-5 sm:grid-cols-[1fr_auto] sm:items-baseline sm:gap-6"
               >
                 <div className="min-w-0">
-                  <p className="font-inscription text-lg font-bold tracking-tight">
+                  <p className="text-lg font-bold tracking-tight">
                     {d.label}
                   </p>
                   <p className="mt-1 break-all font-data text-sm text-ink-soft">

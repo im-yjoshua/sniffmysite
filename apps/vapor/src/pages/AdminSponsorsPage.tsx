@@ -125,7 +125,7 @@ export function AdminSponsorsPage() {
       </div>
 
       <div className="py-10 md:py-14">
-        <h1 className="font-inscription text-4xl font-bold tracking-tight md:text-5xl">
+        <h1 className="font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl">
           Banner approvals
         </h1>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -239,7 +239,7 @@ export function AdminSponsorsPage() {
                   />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                      <h2 className="font-inscription text-2xl font-bold tracking-tight">
+                      <h2 className="font-inscription text-2xl font-bold uppercase tracking-tight">
                         {s.brand_name}
                       </h2>
                       <p className="font-data text-sm uppercase tracking-[0.18em] text-ink-faint">

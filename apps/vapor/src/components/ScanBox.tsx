@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dices, FlaskConical } from 'lucide-react';
+import { Dices } from 'lucide-react';
 import { rollRandomSeed } from '../lib/randomSeeds';
 
 interface ScanBoxProps {
   /** External seed: set when a leaderboard row's "test again" is clicked. */
   seedUrl: string;
   onSeedConsumed: () => void;
+  /** DOM id of the input. Pass a unique one when several boxes share a page. */
+  inputId?: string;
 }
 
 /**
- * The hero scan box (§2.3): URL input + the one CTA, "Test the page".
+ * The arena gate: URL input + the one CTA, "Enter the Arena".
  * Hands off to the real engine — submits navigate to `/scan?url=…` where
- * Task 5's result page runs the live POST /api/vapor/scan flow.
- * (The Task 3 inline mock result was removed; the engine is real now.)
+ * the result page runs the live POST /api/vapor/scan flow.
  */
-export function ScanBox({ seedUrl, onSeedConsumed }: ScanBoxProps) {
+export function ScanBox({ seedUrl, onSeedConsumed, inputId = 'scan-input' }: ScanBoxProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -26,8 +27,8 @@ export function ScanBox({ seedUrl, onSeedConsumed }: ScanBoxProps) {
       setUrl(seedUrl);
       setError('');
       onSeedConsumed();
-      document.getElementById('scan-input')?.focus();
-      document.getElementById('scan-input')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById(inputId)?.focus();
+      document.getElementById(inputId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     // onSeedConsumed is stable from the parent; seedUrl is the trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,7 +57,7 @@ export function ScanBox({ seedUrl, onSeedConsumed }: ScanBoxProps) {
         aria-label="Sniff a startup page"
       >
         <input
-          id="scan-input"
+          id={inputId}
           type="text"
           inputMode="url"
           autoComplete="off"
@@ -71,8 +72,7 @@ export function ScanBox({ seedUrl, onSeedConsumed }: ScanBoxProps) {
           type="submit"
           className="tap-target flex shrink-0 items-center justify-center gap-2 bg-hazard px-6 py-3.5 font-data text-sm font-bold uppercase tracking-wider text-paper transition-colors hover:bg-hazard-deep"
         >
-          <FlaskConical className="h-5 w-5" strokeWidth={2.25} />
-          Sniff it
+          Enter the Arena
         </button>
       </form>
 

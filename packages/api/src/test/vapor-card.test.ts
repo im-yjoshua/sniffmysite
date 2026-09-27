@@ -13,7 +13,7 @@ import express, { type Express } from 'express';
 import type { Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import {
-  ROSETTE_COLORS,
+  TIER_COLORS,
   rosetteColor,
   rosetteBadgeLines,
   rosetteBadgeSVG,
@@ -78,8 +78,8 @@ const CARD_INPUT: VaporCardInput = {
 describe('rosette seal', () => {
   it('has a tier color for every tier', () => {
     for (const tier of TIERS) {
-      assert.ok(/^#[0-9A-F]{6}$/i.test(ROSETTE_COLORS[tier]), `${tier}: hex color`);
-      assert.equal(rosetteColor(tier), ROSETTE_COLORS[tier]);
+      assert.ok(/^#[0-9A-F]{6}$/i.test(TIER_COLORS[tier]), `${tier}: hex color`);
+      assert.equal(rosetteColor(tier), TIER_COLORS[tier]);
     }
   });
 

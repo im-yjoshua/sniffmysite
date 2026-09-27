@@ -17,14 +17,14 @@
  * refresh is honest) and `Cross-Origin-Resource-Policy: cross-origin`
  * because badges are MEANT to be hotlinked on other people's sites.
  *
- * Design language: Inspection Lab paper/ink, tier-color accent bar (the
- * rosette seal doesn't read below ~120px, so the badge leads with a big
+ * Design language: paper/ink, tier-color accent bar. At badge size the score
+ * and tier name are the whole message — the seal art lives on the site.
  * number and a small tier label instead). No gradients, no emojis.
  */
 
 import { normalizeSlug } from './slug';
 import { getProfile } from './profile';
-import { ROSETTE_COLORS } from './vapor-card';
+import { TIER_COLORS } from './vapor-card';
 import type { Tier } from './score';
 
 /** Badge canvas. Reads fine down to ~120px wide. */
@@ -57,7 +57,7 @@ function escapeXml(s: string): string {
  * this size — no domain text is rendered.
  */
 export function badgeSvg(sniffScore: number, tier: Tier): string {
-  const color = ROSETTE_COLORS[tier];
+  const color = TIER_COLORS[tier];
   const score = Math.max(0, Math.min(100, Math.round(sniffScore)));
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${BADGE_W}" height="${BADGE_H}" viewBox="0 0 ${BADGE_W} ${BADGE_H}" font-family="${FONT_STACK}" role="img" aria-label="SniffMySite score ${score} out of 100, ${escapeXml(tier)}">` +

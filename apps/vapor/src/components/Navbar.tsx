@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FlaskConical, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { Ticker } from './Ticker';
@@ -98,8 +98,7 @@ function SniffCta({
       // could never be hidden on mobile. Keep display at the call site.
       className={`tap-target min-h-[44px] items-center justify-center gap-2 bg-hazard px-6 font-data text-sm font-bold uppercase tracking-[0.18em] text-paper transition-colors hover:bg-hazard-deep ${className}`}
     >
-      <FlaskConical className="h-5 w-5" strokeWidth={2.25} aria-hidden="true" />
-      Sniff a site
+      Enter the Arena
     </button>
   );
 }
@@ -133,7 +132,7 @@ export function Navbar() {
             <span className="text-ink">
               <Logo className="h-8 w-8" />
             </span>
-            <span className="font-inscription text-xl font-bold uppercase tracking-tight max-[400px]:hidden">
+            <span className="font-inscription text-2xl font-bold uppercase tracking-tight max-[400px]:hidden">
               SniffMySite
             </span>
           </Link>

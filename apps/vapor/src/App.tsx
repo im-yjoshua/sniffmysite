@@ -6,6 +6,8 @@ import { Footer } from './components/Footer';
 import { ScanBox } from './components/ScanBox';
 import { Leaderboard } from './components/Leaderboard';
 import { TrendingBoard } from './components/TrendingBoard';
+import { MeanderDivider } from './components/seals/MeanderDivider';
+import { Reveal } from './components/Reveal';
 import { ScanPage } from './pages/ScanPage';
 import { ComparePage } from './pages/ComparePage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
@@ -78,6 +80,25 @@ function ScrollManager() {
   return null;
 }
 
+/** The three steps of the ritual — the only explanation the home page needs. */
+const RITUAL_STEPS = [
+  {
+    numeral: 'I',
+    title: 'Enter the arena',
+    body: 'Paste any landing page\u2019s web address. The gates take about thirty seconds — no account, no fee.',
+  },
+  {
+    numeral: 'II',
+    title: 'The six ordeals',
+    body: 'Hype words. Grand claims. Empty promises. Hidden prices. Stale pages. Six checks, weighed — the two biggest count the most.',
+  },
+  {
+    numeral: 'III',
+    title: 'The thumb falls',
+    body: 'A Sniff Score from 0 to 100, a verdict from LAUREATE to LION FOOD, and every finding shown with its evidence.',
+  },
+] as const;
+
 function LandingPage() {
   // When a leaderboard row's "sniff again" is clicked, the domain is seeded
   // into the hero scan box via location state:
@@ -107,100 +128,123 @@ function LandingPage() {
     };
   }, []);
 
+  // A standings row's "sniff again" seeds the hero scan box; the ScanBox
+  // effect scrolls it into view.
+  const sniffAgain = (domain: string) => setScanSeed(domain);
+
   return (
     <main>
-      {/* Hero: one-liner + scan box | leaderboard — all above the fold */}
-      <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-16 pt-12 md:pt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
-        {/* min-w-0: grid items default to min-width:auto and refuse to
-            shrink below their content — on a 320px phone the leaderboard
-            column forced the whole track (and the h1's wrap width) wider
-            than the viewport. */}
-        <div className="min-w-0">
+      {/* 1 — Hero: the judgment, in one breath. */}
+      <section className="mx-auto max-w-3xl px-6 pb-14 pt-12 text-center md:pb-20 md:pt-20">
+        <Reveal>
           <p className="eyebrow text-ink-soft">
-            The startup smell test
+            The Colosseum of Landing Pages
           </p>
-          <h1 className="mt-4 font-inscription text-6xl font-bold leading-[1.04] tracking-tight md:text-7xl">
-            We <span className="text-hazard">sniff</span> startups so you don&rsquo;t have to.
+          <h1 className="mt-4 font-inscription text-5xl font-bold uppercase leading-[1.05] tracking-tight md:text-7xl">
+            Every landing page enters.
+            <br />
+            <span className="text-hazard">Few leave standing.</span>
           </h1>
-          <p className="mt-5 max-w-md text-lg leading-relaxed text-ink-soft">
-            Paste a startup&rsquo;s web address. We read the page, count
-            the hype, and hand it a score from 0 to 100 — 100 is certified
-            real, 0 is pure vapor. Founders, be brave.
-          </p>
+        </Reveal>
 
-          {/* The scan box — the CTA's target. scroll-mt clears the sticky navbar. */}
-          <div id="sniff" className="mt-8 scroll-mt-40">
-            <ScanBox seedUrl={scanSeed} onSeedConsumed={() => setScanSeed('')} />
-            <p className="mt-3 text-sm uppercase tracking-[0.14em] text-ink-faint">
-              Got two pages?{' '}
-              <Link
-                to="/battle"
-                className="tap-target inline-flex items-center font-medium text-hazard-ink underline decoration-hazard-ink/40 underline-offset-4 hover:decoration-hazard-ink"
-              >
-                Pit them against each other
-              </Link>
-            </p>
-          </div>
+        {/* The arena gate — the CTA's target. scroll-mt clears the sticky navbar. */}
+        <div id="sniff" className="mt-10 scroll-mt-40 text-left">
+          <ScanBox seedUrl={scanSeed} onSeedConsumed={() => setScanSeed('')} />
         </div>
-
-        <div className="min-w-0 lg:pt-2">
-          <Leaderboard onSniffAgain={(domain) => setScanSeed(domain)} />
-        </div>
+        <p className="mt-4 font-data text-xs uppercase tracking-[0.22em] text-ink-faint">
+          Morituri te salutant — those about to be judged salute you.
+        </p>
+        <p className="mt-3 text-sm uppercase tracking-[0.14em] text-ink-faint">
+          Got two pages?{' '}
+          <Link
+            to="/battle"
+            className="tap-target inline-flex items-center font-medium text-hazard-ink underline decoration-hazard-ink/40 underline-offset-4 hover:decoration-hazard-ink"
+          >
+            Pit them against each other
+          </Link>
+        </p>
       </section>
 
-      {/* Slot A: rented banner, right below the hero. A full section away
-          from the scores — sponsorship never sits next to a ranking. */}
+      {/* The meander — a border between the promise and the proof. */}
+      <div className="mx-auto max-w-6xl px-6" aria-hidden="true">
+        <MeanderDivider className="text-ink-faint" />
+      </div>
+
+      {/* 2 — How the judgment works: three steps, no more. */}
+      <section className="mx-auto max-w-6xl px-6 py-14 md:py-20" aria-label="How the judgment works">
+        <Reveal>
+          <p className="eyebrow text-ink-soft">The ritual</p>
+          <h2 className="mt-4 font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl">
+            How the judgment works
+          </h2>
+        </Reveal>
+        <ol className="mt-10 grid gap-10 border-t border-hairline pt-10 sm:grid-cols-3">
+          {RITUAL_STEPS.map((s, i) => (
+            <li key={s.numeral}>
+              <Reveal delay={i * 90}>
+                <p className="font-inscription text-4xl font-bold text-hazard" aria-hidden="true">
+                  {s.numeral}
+                </p>
+                <h3 className="mt-3 text-xl font-bold tracking-tight">
+                  {s.title}
+                </h3>
+                <p className="mt-2 text-base leading-relaxed text-ink-soft">
+                  {s.body}
+                </p>
+              </Reveal>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* 3 — The Standings, top 10. The live feed (ticker) already runs in
+          the navbar on every page: "Judgments, as they fall." */}
+      <section className="mx-auto max-w-6xl px-6 pb-14 md:pb-20">
+        <Reveal>
+          <Leaderboard onSniffAgain={sniffAgain} />
+        </Reveal>
+        <p className="mt-6 text-center">
+          <Link
+            to="/leaderboard"
+            className="tap-target inline-flex min-h-[44px] items-center font-data text-sm font-medium uppercase tracking-[0.18em] text-ink-soft transition-colors hover:text-hazard"
+          >
+            See the full standings
+          </Link>
+        </p>
+      </section>
+
+      {/* 4 — The Lions' Den: the five most vapor pages. */}
+      <section className="mx-auto max-w-6xl px-6 pb-14 md:pb-20">
+        <Reveal>
+          <Leaderboard variant="vapor" onSniffAgain={sniffAgain} />
+        </Reveal>
+      </section>
+
+      {/* Slot A: rented banner. A full section away from the scores —
+          sponsorship never sits next to a ranking. */}
       <SponsorSlot sponsor={sponsors[0] ?? null} />
 
-      {/* Most sniffed: the trending board, fed by live scan counts. Hides
-          itself if the API is unreachable; never fabricates rows. */}
+      {/* 5 — Most sniffed: the pages people keep testing. */}
       <TrendingBoard />
 
-      {/* What exactly is this — the satire, stated plainly. */}
-      <section className="border-y border-hairline bg-paper">
-        <div className="mx-auto grid max-w-6xl gap-6 px-6 py-10 md:grid-cols-[auto_1fr] md:items-center md:gap-12">
-          <p className="eyebrow text-ink-soft">
-            What is this
-          </p>
-          <p className="max-w-3xl font-inscription text-xl font-bold leading-snug tracking-tight md:text-2xl">
-            A joke site that takes startup hype seriously. We read a
-            company&rsquo;s public web page and score the page
-            <span className="text-hazard"> from 0 (pure vapor) to 100 (certified real)</span>.
-            We make fun of the words — never the people behind them. Six
-            checks, one score.
-          </p>
-        </div>
-      </section>
-
-      {/* The joke, written straight (§2.8) */}
-      <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
-        <p className="max-w-2xl font-inscription text-2xl font-bold leading-snug tracking-tight md:text-3xl">
-          Every AI startup is &lsquo;revolutionizing&rsquo; something.
-          <br />
-          <span className="text-ink-soft">We measure exactly how much.</span>
-        </p>
-        <div className="mt-8 grid gap-8 border-t border-hairline pt-8 sm:grid-cols-3">
-          <div>
-            <p className="font-data text-2xl font-bold tabular-nums">6</p>
-            <p className="mt-1 text-base text-ink-soft">
-              checks per test — hype words, big claims, empty promises,
-              missing prices, and old pages.
+      {/* 6 — The CTA band: one last gate before the footer. */}
+      <section className="border-y border-hairline bg-paper" aria-label="Sniff another page">
+        <div className="mx-auto max-w-3xl px-6 py-14 text-center md:py-20">
+          <Reveal>
+            <h2 className="font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl">
+              Veni, vidi, vici.
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
+              I came, I saw, I judged. One more page — the arena is waiting.
             </p>
-          </div>
-          <div>
-            <p className="font-data text-2xl font-bold tabular-nums">0–100</p>
-            <p className="mt-1 text-base text-ink-soft">
-              the Sniff Score. 0 is pure vapor, 100 is certified real. The two
-              biggest checks count the most, and you can re-test any page.
-            </p>
-          </div>
-          <div>
-            <p className="font-data text-2xl font-bold tabular-nums">$0</p>
-            <p className="mt-1 text-base text-ink-soft">
-              to test, to view, to share. Founders only pay to re-test
-              faster — or to prove they&rsquo;re real.
-            </p>
-          </div>
+            <div className="mt-8 text-left">
+              <ScanBox
+                seedUrl=""
+                onSeedConsumed={() => {}}
+                inputId="scan-input-cta"
+              />
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -211,13 +255,14 @@ function LandingPage() {
   );
 }
 
+
 function NotFound() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-20 md:py-28">
       <p className="eyebrow text-hazard-ink">
         404
       </p>
-      <h1 className="mt-4 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
+      <h1 className="mt-4 font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl">
         This page doesn&rsquo;t exist.
       </h1>
       <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">

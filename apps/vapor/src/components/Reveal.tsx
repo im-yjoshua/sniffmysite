@@ -8,9 +8,12 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 export function Reveal({
   children,
   className = '',
+  delay = 0,
 }: {
   children: ReactNode;
   className?: string;
+  /** Stagger delay in ms — applied as transition-delay once visible. */
+  delay?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -38,6 +41,7 @@ export function Reveal({
   return (
     <div
       ref={ref}
+      style={delay > 0 ? { transitionDelay: `${delay}ms` } : undefined}
       className={`reveal${visible ? ' reveal-visible' : ''} ${className}`}
     >
       {children}

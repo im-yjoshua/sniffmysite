@@ -11,7 +11,7 @@ import type { Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import { normalizeSlug, displayName, getProfile } from '../lib/profile';
 import {
-  ROSETTE_COLORS,
+  TIER_COLORS,
   rosetteColor,
   rosetteBadgeLines,
   rosetteBadgeSVG,
@@ -116,7 +116,7 @@ describe('rosette badge pure helpers', () => {
   it('rosetteColor matches the per-tier palette', () => {
     assert.equal(rosetteColor('LAUREATE'), '#B98A1D');
     assert.equal(rosetteColor('LION FOOD'), '#9A958A');
-    assert.deepEqual(Object.keys(ROSETTE_COLORS).sort(), [
+    assert.deepEqual(Object.keys(TIER_COLORS).sort(), [
       'GLADIATOR',
       'JESTER',
       'LAUREATE',

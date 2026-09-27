@@ -15,7 +15,7 @@ import { JudgingCriteria } from '../components/JudgingCriteria';
 const TABS: Array<{ key: LeaderboardSort; label: string }> = [
   { key: 'real', label: 'Most Real' },
   { key: 'vapor', label: 'Most Vapor' },
-  { key: 'improved', label: 'Most Improved' },
+  { key: 'improved', label: 'Rise from the Sands' },
 ];
 
 /** The board quietly re-checks for new scans on this interval (15–30s spec). */
@@ -23,9 +23,9 @@ const POLL_MS = 20_000;
 
 /** Per-tab subcopy: the default board is a prize, not a shaming. */
 const TAB_SUBLINES: Record<LeaderboardSort, string> = {
-  real: 'The most honest pages on the internet — highest sniff score first. #1 is the prize. Every founder wants this spot.',
-  vapor: 'The Wall of Shame — most vapor first. #1 is the vaporest page we\u2019ve ever tested. Say cheese.',
-  improved: 'Redemption arcs — pages that fixed their copy and re-tested. Ranked by biggest glow-up.',
+  real: 'The honored — highest Sniff Score first. #1 takes the laurel. Every founder wants this spot.',
+  vapor: 'The doomed — most vapor first. #1 is the vaporest page we\u2019ve ever tested. Say cheese.',
+  improved: 'Rise from the Sands — pages that fixed their copy and re-tested. Ranked by biggest climb.',
 };
 
 /**
@@ -125,7 +125,7 @@ export function LeaderboardPage() {
       <p className="eyebrow text-ink-soft">
         The official ranking
       </p>
-      <h1 className="mt-4 font-inscription text-5xl font-bold tracking-tight md:text-6xl">
+      <h1 className="mt-4 font-inscription text-5xl font-bold uppercase tracking-tight md:text-6xl">
         The Standings
       </h1>
       <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -195,8 +195,8 @@ export function LeaderboardPage() {
 
       {error && (
         <div className="border-b border-hairline py-16 text-center">
-          <p className="font-inscription text-2xl font-bold">
-            We can&rsquo;t load the rankings right now.
+          <p className="font-inscription text-2xl font-bold uppercase tracking-tight">
+            The board is unreachable.
           </p>
           <p className="mt-2 text-base text-ink-faint">
             We couldn&rsquo;t reach our score list.
@@ -221,12 +221,12 @@ export function LeaderboardPage() {
         sort === 'improved' &&
         allDeltasNull && (
         <div className="border-b border-hairline py-16 text-center md:py-20">
-          <p className="font-inscription text-3xl font-bold tracking-tight md:text-4xl">
-            No redemption arcs yet.
+          <p className="font-inscription text-3xl font-bold uppercase tracking-tight md:text-4xl">
+            The sands are empty.
           </p>
           <p className="mx-auto mt-4 max-w-md text-lg leading-relaxed text-ink-soft">
-            Nobody has fixed their page and re-tested yet. This board is
-            empty — for now. Be the first.
+            Nobody has fixed their page and re-tested yet. Be the first
+            to rise.
           </p>
           <Link
             to="/"
@@ -253,7 +253,7 @@ export function LeaderboardPage() {
                     title={`Open the ${e.domain} report`}
                     className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4"
                   >
-                    <span className={`w-10 shrink-0 font-inscription text-lg font-bold tabular-nums ${
+                    <span className={`w-10 shrink-0 font-data text-lg font-bold tabular-nums ${
                       i === 0 && sort === 'real' ? 'text-gold' : 'text-ink-faint'
                     }`}>
                       {String(i + 1).padStart(2, '0')}
@@ -262,8 +262,9 @@ export function LeaderboardPage() {
                     <SiteLogo domain={e.domain} size="md" />
 
                     <span className="min-w-0 flex-1">
+                      {/* Body type: inscription is display-only, never below 24px. */}
                       <span
-                        className="block truncate font-inscription text-lg font-bold leading-tight tracking-tight"
+                        className="block truncate text-lg font-bold leading-tight tracking-tight"
                         title={e.domain}
                       >
                         {e.domain}

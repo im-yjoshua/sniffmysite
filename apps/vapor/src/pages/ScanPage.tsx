@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Languages, RotateCcw, Share2 } from 'lucide-react';
-import { TierMark } from '../components/seals/TierMark';
+import { VerdictReveal } from '../components/VerdictReveal';
 import { MetricBars } from '../components/MetricBars';
 import { SharePopup } from '../components/SharePopup';
 import { BadgeSnippet } from '../components/BadgeSnippet';
 import { RandomSniffButton } from '../components/ScanBox';
 import { PriorityStrip } from '../components/PriorityStrip';
 import { TurnstileWidget } from '../components/TurnstileWidget';
-import { useCountUp } from '../hooks/useCountUp';
 import { SCORE_STORY } from '../lib/score-explainer';
 import { scanUrl, ScanApiError, API_URL, type ApiScanResult } from '../lib/api';
 import { SNIFF_PHASES } from '../lib/sniff-phases';
@@ -179,11 +178,11 @@ export function hostnameOf(url: string): string {
 }
 
 /**
- * The scan result page (§2.3 `/scan?url=…`, Task 5).
+ * The scan result page (`/scan?url=…`).
  * A judgment, not a dashboard: hairline rules, big whitespace, mono data
- * type, and the thumb seal as the hero moment. Reveal sequence is staged —
- * the score counts up first, THEN the verdict seal slams in, like a lab
- * result being certified.
+ * type, and the thumb seal as the hero moment. The reveal is staged inside
+ * VerdictReveal — the seal stamps, the verdict word falls, the score
+ * counts up.
  */
 export function ScanPage() {
   const [params] = useSearchParams();
@@ -193,7 +192,6 @@ export function ScanPage() {
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [result, setResult] = useState<ApiScanResult | null>(null);
   const [error, setError] = useState<LabError | null>(null);
-  const [sealVisible, setSealVisible] = useState(false);
   /** Increments every time a scan finishes — refreshes the credit balance. */
   const [scanCount, setScanCount] = useState(0);
   /** True when the latest scan was paid for with a priority re-scan credit. */
@@ -223,7 +221,6 @@ export function ScanPage() {
       setPhaseIdx(0);
       setResult(null);
       setError(null);
-      setSealVisible(false);
       setShareOpen(false);
       setWidgetFailed(false);
       try {
@@ -285,20 +282,6 @@ export function ScanPage() {
     return () => window.clearInterval(t);
   }, [phase]);
 
-  // Stage the reveal: count-up runs (~1200ms), then the seal slams in.
-  // Under reduced motion the count-up is instant, so the seal lands at once.
-  useEffect(() => {
-    if (phase !== 'done') return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      setSealVisible(true);
-      return;
-    }
-    const t = window.setTimeout(() => setSealVisible(true), 1350);
-    return () => window.clearTimeout(t);
-  }, [phase]);
-
-  const shown = useCountUp(result?.sniff_score ?? 0, phase === 'done' && result !== null);
-
   /** The share popup POSTs the finished scan to /api/vapor/card (arbitrary
    * URLs have no profile, so the /og endpoint can't serve them).
    * NOTE: absolute API_URL — the relative '/api/…' path only works in dev
@@ -329,7 +312,7 @@ export function ScanPage() {
           <p className="eyebrow text-hazard">
             Test failed
           </p>
-          <h1 className="mt-4 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="mt-4 font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl">
             No web address entered.
           </h1>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -337,7 +320,7 @@ export function ScanPage() {
             page — or let the nose pick one for you.
           </p>
           <RandomSniffButton />
-          <BackToLab />
+          <BackToStart />
         </div>
       </ReportShell>
     );
@@ -372,7 +355,7 @@ export function ScanPage() {
           <p className="eyebrow text-hazard">
             Out of free tests
           </p>
-          <h1 className="mt-4 max-w-2xl font-inscription text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="mt-4 max-w-2xl font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl">
             You&rsquo;ve used your 30 free tests this hour.
           </h1>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -425,7 +408,7 @@ export function ScanPage() {
             </>
           )}
           <div className="mt-8">
-            <BackToLab />
+            <BackToStart />
           </div>
         </div>
       )}
@@ -435,7 +418,7 @@ export function ScanPage() {
           <p className="eyebrow text-hazard">
             Test failed
           </p>
-          <h1 className="mt-4 max-w-2xl font-inscription text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="mt-4 max-w-2xl font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl">
             {error.title}
           </h1>
           <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
@@ -472,7 +455,7 @@ export function ScanPage() {
                   <RotateCcw className="h-5 w-5" strokeWidth={2.25} />
                   Try again
                 </button>
-                <BackToLab />
+                <BackToStart />
               </>
             )}
           </div>
@@ -481,29 +464,19 @@ export function ScanPage() {
 
       {phase === 'done' && result && (
         <div aria-live="polite">
-          {/* The verdict moment: number first, thumb seal second. */}
-          <div className="flex flex-wrap items-end gap-x-8 gap-y-8 py-10 md:gap-x-12 md:py-14">
-            <div>
-              <p className="eyebrow text-ink-faint">
-                The lab has spoken
-              </p>
-              <p className="mt-3 font-data text-8xl font-bold tabular-nums leading-none text-hazard md:text-9xl">
-                {shown}
-              </p>
-              <p className="mt-3 max-w-xs text-base leading-relaxed text-ink-soft">
-                Sniff Score — 0 is pure vapor, 100 is certified real. Higher
-                means more real.
-              </p>
+          {/* The verdict moment: the seal stamps, the word falls, the
+              score counts up. "The thumb has fallen." */}
+          <div className="py-10 md:py-14">
+            <p className="eyebrow text-center text-hazard-ink">
+              The thumb has fallen.
+            </p>
+            <div className="mt-8">
+              <VerdictReveal
+                key={result.snapshot_hash}
+                score={result.sniff_score}
+                tier={result.tier}
+              />
             </div>
-            {sealVisible && (
-              <div className="pb-3">
-                <TierMark
-                  key={result.snapshot_hash}
-                  tier={result.tier}
-                  size={128}
-                />
-              </div>
-            )}
           </div>
 
           {/* The findings — the verdict, in plain words. */}
@@ -511,7 +484,7 @@ export function ScanPage() {
             <p className="eyebrow text-ink-faint">
               The findings
             </p>
-            <p className="mt-4 max-w-3xl font-inscription text-2xl font-bold leading-snug tracking-tight md:text-4xl">
+            <p className="mt-4 max-w-3xl text-2xl font-bold leading-snug tracking-tight md:text-4xl">
               {result.verdict}
             </p>
             {result.evidence.language_note && (
@@ -604,7 +577,7 @@ function ReportShell({ url, children }: { url?: string; children: ReactNode }) {
     <main className="mx-auto max-w-6xl px-6 pb-16 pt-10 md:pt-14">
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b-2 border-ink pb-4">
         <p className="eyebrow text-ink-soft">
-          Test report
+          The judgment
         </p>
         <Link
           to="/"
@@ -624,7 +597,7 @@ function ReportShell({ url, children }: { url?: string; children: ReactNode }) {
   );
 }
 
-function BackToLab() {
+function BackToStart() {
   return (
     <Link
       to="/"

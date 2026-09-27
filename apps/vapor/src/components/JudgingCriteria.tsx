@@ -1,5 +1,5 @@
 import { TierMark } from './seals/TierMark';
-import { tierFor } from '../lib/tiers';
+import { TIER_TAGLINES, type TierLabel } from '../lib/tiers';
 import { CHECK_INFO, SCORE_STORY, type MetricKey } from '../lib/score-explainer';
 
 /**
@@ -40,29 +40,30 @@ const CHECKS: Array<{
 ];
 
 /**
- * The Sniff Score levels, highest first. Ranges are keyed off the public
- * sniff score: 100 = certified real, 0 = pure vapor.
+ * The Sniff Score verdicts, highest first. Bands match the engine's Roman
+ * tiers exactly (packages/api/src/lib/score.ts); taglines are the locked
+ * arena voice from lib/tiers.ts.
  */
-const TIERS = [
-  { max: 100, verdict: 'Fine. We checked twice.' },
-  { max: 80, verdict: 'So close. Yet so far.' },
-  { max: 60, verdict: 'Eyebrows raised.' },
-  { max: 40, verdict: 'Just vibes.' },
-  { max: 20, verdict: 'All hype, no substance.' },
+const TIERS: Array<{ lo: number; hi: number; tier: TierLabel }> = [
+  { lo: 90, hi: 100, tier: 'LAUREATE' },
+  { lo: 75, hi: 89, tier: 'GLADIATOR' },
+  { lo: 50, hi: 74, tier: 'RECRUIT' },
+  { lo: 25, hi: 49, tier: 'JESTER' },
+  { lo: 0, hi: 24, tier: 'LION FOOD' },
 ] as const;
 
 export function JudgingCriteria() {
   return (
     <section
       id="how-it-works"
-      aria-label="How we judge"
+      aria-label="How the judgment works"
       className="scroll-mt-40 border-t-2 border-ink py-12 md:py-16"
     >
       <p className="eyebrow text-ink-soft">
         The judging rubric
       </p>
-      <h2 className="mt-4 font-inscription text-4xl font-bold tracking-tight md:text-5xl">
-        How we judge
+      <h2 className="mt-4 font-inscription text-4xl font-bold uppercase tracking-tight md:text-5xl">
+        The six ordeals
       </h2>
       <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
         {SCORE_STORY} No appeals, no bribes — the only way to change a
@@ -75,7 +76,8 @@ export function JudgingCriteria() {
             <p className="eyebrow text-ink-faint">
               Check {i + 1} of 6
             </p>
-            <h3 className="mt-2 font-inscription text-xl font-bold tracking-tight">
+            {/* Body type: inscription is display-only and never below 24px. */}
+            <h3 className="mt-2 text-xl font-bold tracking-tight">
               {CHECK_INFO[c.key].name}
             </h3>
             <p className="mt-1 text-base font-bold text-ink">
@@ -88,32 +90,26 @@ export function JudgingCriteria() {
 
       <div className="mt-12">
         <p className="eyebrow text-ink-faint">
-          The medals
+          The verdicts
         </p>
         <ul className="mt-6 space-y-4">
-          {TIERS.map((t, i) => {
-            // TIERS is ordered highest first: the range starts one above
-            // the next band's max (or at 0 for the last band).
-            const lo = i === TIERS.length - 1 ? 0 : TIERS[i + 1].max + 1;
-            const tier = tierFor(t.max);
-            return (
-              <li
-                key={t.max}
-                className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4"
-              >
-                <span className="w-20 shrink-0 font-data text-base font-bold tabular-nums text-ink-soft">
-                  {lo}–{t.max}
+          {TIERS.map((t) => (
+            <li
+              key={t.tier}
+              className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-hairline pb-4"
+            >
+              <span className="w-20 shrink-0 font-data text-base font-bold tabular-nums text-ink-soft">
+                {t.lo}–{t.hi}
+              </span>
+              <span className="flex w-full shrink-0 items-center gap-2.5 sm:w-64">
+                <TierMark tier={t.tier} size={48} />
+                <span className="font-data text-sm uppercase tracking-[0.14em] text-ink-soft">
+                  {t.tier}
                 </span>
-                <span className="flex w-full shrink-0 items-center gap-2.5 sm:w-64">
-                  <TierMark tier={tier} size={48} />
-                  <span className="font-data text-sm uppercase tracking-[0.14em] text-ink-soft">
-                    {tier}
-                  </span>
-                </span>
-                <span className="text-base text-ink-soft">{t.verdict}</span>
-              </li>
-            );
-          })}
+              </span>
+              <span className="text-base text-ink-soft">{TIER_TAGLINES[t.tier]}</span>
+            </li>
+          ))}
         </ul>
       </div>
     </section>

@@ -44,7 +44,7 @@ export interface VaporCardInput {
 
 /** Tier colors — the arena palette. LAUREATE gold, GLADIATOR slate,
  * RECRUIT bronze-orange, JESTER torch-flame, LION FOOD muted stone. */
-export const ROSETTE_COLORS: Record<Tier, string> = {
+export const TIER_COLORS: Record<Tier, string> = {
   LAUREATE: '#B98A1D', // gold — the prize
   GLADIATOR: '#6E7681', // silver/slate — a proven fighter
   RECRUIT: '#D97A1F', // bronze-orange — shows promise
@@ -53,7 +53,7 @@ export const ROSETTE_COLORS: Record<Tier, string> = {
 };
 
 export function rosetteColor(tier: Tier): string {
-  return ROSETTE_COLORS[tier];
+  return TIER_COLORS[tier];
 }
 
 /**

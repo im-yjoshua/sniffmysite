@@ -423,7 +423,9 @@ describe('sponsor HTTP routes', () => {
       7,
       T0,
     );
-    approveSponsor(record.id, T0, T0);
+    // Approve relative to now: the public window is time-relative, and the
+    // fixed T0 fixture (2026-09-20) plus a 7-day term expired on 2026-09-27.
+    approveSponsor(record.id);
 
     const { status, body } = await req('GET', '/sponsors');
     assert.equal(status, 200);

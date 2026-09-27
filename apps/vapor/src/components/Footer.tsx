@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FlaskConical } from 'lucide-react';
+import { SPQRBadge } from './seals/SPQRBadge';
 
 /**
  * The real footer (Chat A, Sep 21 — Antigravity-inspired rebuild).
@@ -64,14 +64,13 @@ function SniffSomethingButton() {
       onClick={go}
       className="tap-target inline-flex min-h-[44px] items-center justify-center gap-2.5 bg-hazard px-8 font-data text-sm font-bold uppercase tracking-[0.18em] text-paper transition-colors hover:bg-hazard-deep"
     >
-      <FlaskConical className="h-5 w-5" strokeWidth={2.25} aria-hidden="true" />
-      Go sniff something.
+      Enter the Arena
     </button>
   );
 }
 
 const SITE_LINKS = [
-  { to: '/#sniff', label: 'Sniff a site' },
+  { to: '/#sniff', label: 'Sniff' },
   { to: '/leaderboard', label: 'Leaderboard' },
   { to: '/leaderboard#how-it-works', label: 'How it works' },
   { to: '/pricing', label: 'Pricing' },
@@ -150,7 +149,7 @@ export function Footer() {
         <div className="grid gap-12 lg:grid-cols-[1.25fr_1fr] lg:gap-16">
           <div>
             <p className="eyebrow text-ink-soft">The nose never sleeps</p>
-            <p className="mt-4 font-inscription text-3xl font-bold leading-tight tracking-tight md:text-5xl">
+            <p className="mt-4 font-inscription text-3xl font-bold uppercase leading-tight tracking-tight md:text-5xl">
               No startups were harmed.
               <br />
               Several were exposed.
@@ -209,9 +208,12 @@ export function Footer() {
             people behind them. A bad score isn&rsquo;t forever: fix the
             page, sniff it again.
           </p>
-          <p className="shrink-0 font-data text-[13px] uppercase tracking-[0.18em] text-ink-faint">
-            © 2026 · Sniff Score v1 · nose operational
-          </p>
+          <div className="flex shrink-0 items-center gap-4">
+            <SPQRBadge className="h-11 w-11 shrink-0 text-ink-faint" />
+            <p className="font-data text-[13px] uppercase tracking-[0.18em] text-ink-faint">
+              © 2026 · Sniff Score v1 · nose operational
+            </p>
+          </div>
         </div>
       </div>
     </footer>

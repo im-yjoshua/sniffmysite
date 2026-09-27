@@ -86,7 +86,7 @@ export function EvidencePanel({
         <p className="eyebrow text-ink-faint">
           The biggest clue
         </p>
-        <p className="mt-3 font-inscription text-xl font-bold leading-snug tracking-tight md:text-2xl">
+        <p className="mt-3 text-xl font-bold leading-snug tracking-tight md:text-2xl">
           {topInfo.name} moved the needle most.
         </p>
         <p className="mt-3 text-lg leading-relaxed text-ink-soft">

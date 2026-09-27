@@ -19,7 +19,7 @@ import {
   BADGE_W,
   BADGE_H,
 } from '../lib/badge';
-import { ROSETTE_COLORS } from '../lib/vapor-card';
+import { TIER_COLORS } from '../lib/vapor-card';
 import { getProfile } from '../lib/profile';
 import { recordBoardScan, _resetScanLog } from '../lib/scanlog';
 import { scorePage } from '../lib/score';
@@ -48,7 +48,7 @@ describe('badgeSvg', () => {
       assert.ok(svg.includes('/100'), '/100 context missing');
       assert.ok(svg.includes(tier), 'tier name missing');
       assert.ok(
-        svg.includes(ROSETTE_COLORS[tier]),
+        svg.includes(TIER_COLORS[tier]),
         'tier color missing',
       );
       assert.ok(svg.includes('SNIFFED BY SNIFFMYSITE'), 'wordmark missing');

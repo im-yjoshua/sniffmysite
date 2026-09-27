@@ -12,24 +12,28 @@ import { SiteLogo } from './SiteLogo';
 interface LeaderboardProps {
   /** Fills the hero scan box with this domain when a row is clicked. */
   onSniffAgain: (domain: string) => void;
+  /** 'real' → The Standings (top 10, most real). 'vapor' → The Lions' Den
+   *  (bottom 5, most vapor). */
+  variant?: 'real' | 'vapor';
 }
 
 /**
- * Standings preview — top 10 most real, real engine scores
- * (§2.3). Hairline-separated rows (not cards), tabular mono sniff scores,
+ * Standings preview — top 10 most real, real engine scores.
+ * Hairline-separated rows (not cards), tabular mono sniff scores,
  * seal marks. Rows stagger in on load; hover lifts 1px and reveals
- * the "sniff again" affordance (§2.7). Sorted the same way as the
+ * the "sniff again" affordance. Sorted the same way as the
  * /leaderboard default (Most Real) so the two never disagree.
  */
-export function Leaderboard({ onSniffAgain }: LeaderboardProps) {
+export function Leaderboard({ onSniffAgain, variant = 'real' }: LeaderboardProps) {
   const [entries, setEntries] = useState<ApiLeaderboardEntry[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const vapor = variant === 'vapor';
 
   useEffect(() => {
     let alive = true;
-    fetchLeaderboard('real')
+    fetchLeaderboard(vapor ? 'vapor' : 'real')
       .then((board) => {
-        if (alive) setEntries(board.entries.slice(0, 10));
+        if (alive) setEntries(board.entries.slice(0, vapor ? 5 : 10));
       })
       .catch((err) => {
         if (alive && err instanceof ScanApiError) setFailed(true);
@@ -37,10 +41,14 @@ export function Leaderboard({ onSniffAgain }: LeaderboardProps) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [vapor]);
 
   return (
-    <section id="standings" aria-label="Standings leaderboard" className="w-full">
+    <section
+      id={vapor ? 'lions-den' : 'standings'}
+      aria-label={vapor ? "The Lions' Den" : 'Standings leaderboard'}
+      className="w-full"
+    >
       {/* flex-wrap + min-w-0: on a 320px phone the "Top 10 · most real
           first" eyebrow (~250px, was shrink-0) plus the title exceeded the
           column, and the hero grid's min-width:auto refused to shrink —
@@ -48,10 +56,16 @@ export function Leaderboard({ onSniffAgain }: LeaderboardProps) {
           drops to its own line instead of forcing overflow. */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b-2 border-ink pb-3">
         <h2 className="min-w-0 font-inscription text-2xl font-bold uppercase tracking-tight">
-          The Standings
+          {vapor ? (
+            <>
+              The Lions&rsquo; <span className="text-hazard">Den</span>
+            </>
+          ) : (
+            'The Standings'
+          )}
         </h2>
         <span className="eyebrow min-w-0 text-ink-faint">
-          Top 10 · most real first
+          {vapor ? 'Bottom 5 · most vapor first' : 'Top 10 · most real first'}
         </span>
       </div>
 
@@ -86,8 +100,10 @@ export function Leaderboard({ onSniffAgain }: LeaderboardProps) {
                 <SiteLogo domain={s.domain} size="sm" />
 
                 <span className="min-w-0 flex-1">
+                  {/* Body type, not inscription: inscription is display-only
+                      and never below 24px. */}
                   <span
-                    className="block truncate font-inscription text-base font-bold leading-tight"
+                    className="block truncate text-base font-bold leading-tight"
                     title={s.domain}
                   >
                     {s.domain}
