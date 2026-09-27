@@ -32,12 +32,21 @@ import {
   CLAIM_WINDOW_MS,
   CLAIM_VERIFY_LIMIT,
   CLAIM_VERIFY_WINDOW_MS,
+  WEBHOOK_LIMIT,
+  WEBHOOK_WINDOW_MS,
   setShareCardHeaders,
 } from '../lib/security';
 import { hitRateLimit } from '../lib/ratelimit';
 import { scanAllowance, recordScan, recordGrant } from '../lib/scan-budget';
 import { recordRecentScan, getRecentScans, getTrendingHosts } from '../lib/recent';
 import { getMovers, isMoversWindow } from '../lib/movers';
+import { verifyPolarSignature, parsePolarEvent } from '../lib/polar';
+import {
+  applyPolarOrderPaid,
+  applyPolarOrderRefunded,
+  supabaseFeaturedStore,
+  type PriorityScanResult,
+} from '../lib/featured';
 
 /**
  * VaporRank routes (§2.11).
@@ -638,3 +647,127 @@ vaporRouter.get(
       ),
     );
 });
+
+/**
+ * Phase A1 — Polar webhook + Featured Roast fulfillment.
+ *
+ * Polar fires here (Standard Webhooks signature, HMAC-verified — no auth
+ * header; authenticity comes from the signature alone):
+ *   POST /api/vapor/webhooks/polar
+ *
+ * order.paid     → validate website-url → priority scan (same v2 engine,
+ *                  no budget gate — it's paid) → publish roast → 7-day pin.
+ *                  Idempotent on the Polar order id.
+ * order.refunded → revoke the pin (the roast stays as history).
+ *
+ * 200 for handled AND ignored events — only bad signatures get a retry.
+ * Retryable failures (scan fetch blew up, store down) answer 500 so Polar
+ * redelivers; idempotency makes redelivery safe.
+ */
+vaporRouter.post(
+  '/webhooks/polar',
+  // Applied BEFORE signature verification — per-IP, so it only throttles a
+  // flooding source, never Polar's own servers. Unsigned floods get 429s
+  // instead of burning HMAC CPU and log lines.
+  rateLimit('polar-webhook', WEBHOOK_LIMIT, WEBHOOK_WINDOW_MS),
+  async (req: import('express').Request & { rawBody?: Buffer }, res) => {
+    const secret = (process.env.POLAR_WEBHOOK_SECRET ?? '').trim();
+    if (!secret) {
+      return res.status(503).json({ error: 'webhook_not_configured' });
+    }
+    const rawBody = req.rawBody ?? Buffer.alloc(0);
+    if (!verifyPolarSignature(rawBody, (name) => req.get(name), secret)) {
+      return res.status(401).json({ error: 'invalid_signature' });
+    }
+
+    let payload: unknown;
+    try {
+      payload = JSON.parse(rawBody.toString('utf8'));
+    } catch {
+      return res.status(400).json({ error: 'invalid_payload' });
+    }
+
+    const parsed = parsePolarEvent(payload);
+    if (!parsed.ok) {
+      console.log(
+        `[polar] webhook ${(payload as { type?: unknown })?.type ?? 'unknown'} → ${parsed.reason}`,
+      );
+      // 200 — Polar must not retry what we'll never handle.
+      return res.json({ received: true, handled: false, reason: parsed.reason });
+    }
+
+    try {
+      const store = supabaseFeaturedStore();
+      const outcome =
+        parsed.type === 'order.paid'
+          ? await applyPolarOrderPaid(parsed, { store, scan: runPriorityScan })
+          : await applyPolarOrderRefunded(parsed.orderId, { store });
+      console.log(`[polar] webhook ${parsed.type} ${parsed.orderId} →`, outcome);
+      if (!outcome.handled && 'retryable' in outcome && outcome.retryable) {
+        // 500 — Polar redelivers; idempotency makes that safe.
+        return res.status(500).json({ received: true, ...outcome });
+      }
+      return res.json({ received: true, ...outcome });
+    } catch (err) {
+      console.error('[polar] fulfillment error', err);
+      return res.status(500).json({ error: 'fulfillment_failed' });
+    }
+  },
+);
+
+/**
+ * GET /api/vapor/featured — the currently pinned Sponsored Champion, if
+ * any. Public, no auth. Only `active` rows whose 7-day window hasn't
+ * lapsed are ever returned (the refund/expire filter lives here, not in
+ * the frontend — A4 renders whatever this returns).
+ */
+vaporRouter.get('/featured', async (_req, res) => {
+  try {
+    const row = await supabaseFeaturedStore().getActive();
+    if (!row) return res.json({ featured: null });
+    return res.json({
+      featured: {
+        url: row.url,
+        slug: row.slug,
+        score: row.score,
+        tier: row.tier,
+        roast: row.roast,
+        paid_at: row.paid_at,
+        expires_at: row.expires_at,
+      },
+    });
+  } catch (err) {
+    console.error('[polar] featured lookup failed', err);
+    return res.status(500).json({ error: 'store_unavailable' });
+  }
+});
+
+/**
+ * The paid priority scan: the exact same fetch + v2 scoring pipeline as
+ * POST /scan, minus the anonymous budget and Turnstile (the buyer paid —
+ * they jump the line). The scan feeds the ticker, the standings journal,
+ * and watchlist alerts exactly like a normal scan — a scan is a scan.
+ * Payment never changes the score; the engine scores what it sees.
+ */
+async function runPriorityScan(url: string): Promise<PriorityScanResult> {
+  const page = await fetchPage(url);
+  const result = scorePage(page.html, page.finalUrl);
+  recordRecentScan({
+    finalUrl: page.finalUrl,
+    vapor_score: result.vapor_score,
+    sniff_score: result.sniff_score,
+    tier: result.tier,
+    scanned_at: result.scanned_at,
+  });
+  recordBoardScan({ finalUrl: page.finalUrl, result });
+  void processScanForWatchlist(page.finalUrl, result).catch((e) =>
+    console.error('[watchlist]', e),
+  );
+  return {
+    finalUrl: page.finalUrl,
+    sniff_score: result.sniff_score,
+    tier: result.tier,
+    verdict: result.verdict,
+    scanned_at: result.scanned_at,
+  };
+}
