@@ -93,7 +93,7 @@ describe('getProfile', () => {
       assert.equal(c.sniff_score, 100 - c.vapor_score);
       assert.ok(c.verdict.length > 0, 'verdict is never empty');
       assert.match(c.snapshot_hash, /^[0-9a-f]{64}$/, 'snapshot_hash is sha256 hex');
-      assert.equal(c.algo_version, 'v2');
+      assert.equal(c.algo_version, 'v3');
       assert.equal(p!.history.length, 1, 'single v2 chapter for now');
       assert.equal(p!.history[0].vapor_score, c.vapor_score);
       assert.equal(p!.history[0].sniff_score, c.sniff_score, 'history shows the sniff score too');

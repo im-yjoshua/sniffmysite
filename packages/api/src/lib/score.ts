@@ -1,10 +1,39 @@
 /**
- * Vapor Score v2 — the scoring engine (§2.4).
+ * Vapor Score v3 — the scoring engine (§2.4).
  *
  * Six metrics, each 0–100 (higher = more vapor), combined by fixed weights
  * that sum to 100. Every constant below is documented and was calibrated
  * against the 20-site fixture suite (see PROGRESS.md); change a constant and
  * you change history, so bump ALGO_VERSION if you touch the formula.
+ *
+ * v3 changes (2026-09-28):
+ *  1. Hero weighting: buzzword hits inside the page's <h1> count DOUBLE —
+ *     the headline is the first thing a visitor reads and the first place
+ *     a hype-drunk page shows it.
+ *  2. Lexicon +14: 2026-era hype ("vibe coding", "growth hacking",
+ *     "crush your", "dominate", "zero to one", …).
+ *  3. Claim patterns +6: "the only <platform|tool|app|…>", "first of its
+ *     kind", "never been done", "impossible", "nothing else comes close",
+ *     "nothing compares".
+ *  4. Weighted evidence: hard proof (docs, API, changelog, GitHub, demo,
+ *     quickstart, status, download) counts 1.0; soft proof (blog,
+ *     whitepaper, case study, tutorial, playground, open source, pricing
+ *     page) counts 0.5. A blog link is not a docs link.
+ *  5. Vague-verb v3: sentences OPENING with a vague action verb
+ *     ("Unlock your potential.") are judged from 3+ words — the old
+ *     5-word gate let every three-word slogan walk free.
+ *  6. Social proof credit: a testimonial with full name + role + company
+ *     is verifiable — sketch −20 (floored at 0).
+ *  7. Pricing v3: price numbers with NO billing period ("$49" with no
+ *     /mo, /year, one-time, per-seat) are half-hidden — 15, not 0.
+ *  8. Freshness v3: a page promising ongoing updates (blog/changelog link)
+ *     but showing nothing newer than two years is abandoned — penalty
+ *     floored at 50.
+ *
+ * LOCKED (Joshua, 2026-09-28): the six weights (25/25/15/15/10/10) and
+ * the five tier boundaries do NOT move. v3 sharpens DETECTION inside each
+ * check — what counts as hype, what counts as proof — never the math that
+ * combines them.
  *
  * v2 changes (2026-09-22, full audit trail in PROGRESS.md):
  *  1. Language guard: the buzzword/claim/vague detectors only smell
@@ -35,7 +64,7 @@
 import { createHash } from 'node:crypto';
 import { extractImages, extractLinks, extractTitle, extractVisibleText } from './fetch';
 
-export const ALGO_VERSION = 'v2' as const;
+export const ALGO_VERSION = 'v3' as const;
 
 /** Metric weights — MUST sum to 100 (asserted in tests). */
 export const WEIGHTS = {
@@ -92,6 +121,8 @@ export interface ScoreEvidence {
   vague_sentences: number;
   trust_mentions: number;
   anonymous_testimonials: number;
+  /** v3: testimonials with full name + role + company (verifiable). */
+  verified_testimonials?: number;
   logo_images: number;
   has_pricing: boolean;
   has_price_signals: boolean;
@@ -223,6 +254,17 @@ const BUZZWORDS = [
   'in the ever-evolving',
   'digital landscape',
   'evolving landscape',
+  // --- v3: 2026-era hype vocabulary. Checked against the fixture suite:
+  // rare on sober dev pages, constant on hype pages.
+  'vibe coding', 'vibe-coded', 'vibe coded',
+  'growth hacking', 'growth hacker',
+  'crush your',
+  'dominate', 'dominates', 'dominating',
+  'unlock growth',
+  'hockey stick',
+  'zero to one',
+  'in record time',
+  'from idea to',
 ];
 // Matches hyper-personalized, hyper-growth, hyperscale… — the laziest prefix in SaaS.
 const HYPER_RE = /\bhyper[\w-]*/g;
@@ -287,20 +329,36 @@ const CLAIM_PATTERNS = [
   /\bindustry-?lead\w*/i,
   /\bmost powerful\b/i,
   /\bultimate\b/i,
+  // --- v3: the grand-claim shapes hype pages actually use. "the only"
+  // is scoped to product nouns — "the only thing we store" is innocent,
+  // "the only platform that" is a coronation.
+  /\bthe only (platform|tool|app|software|solution|service|ai|assistant|agent)\b/i,
+  /\bfirst of its kind\b/i,
+  /\bnever been done\b/i,
+  /\bimpossible\b/i,
+  /\bnothing else comes close\b/i,
+  /\bnothing compares\b/i,
 ];
 
 // Links that constitute evidence a real product exists behind the copy.
-const EVIDENCE_PATTERNS = [
-  /\/docs?\b/i, /documentation/i, /pricing/i, /\bdemo\b/i, /github\.com/i,
+// v3: evidence is WEIGHTED. Hard proof (docs, API, changelog, GitHub, live
+// demo, quickstart, status, download) counts 1.0 per link; soft proof
+// (blog, whitepaper, case study, tutorial, playground, open source, the
+// pricing page itself) counts 0.5. A blog link is not a docs link.
+const HARD_EVIDENCE_PATTERNS = [
+  /\/docs?\b/i, /documentation/i, /\bdemo\b/i, /github\.com/i,
   /changelog/i, /\/api\b/i, /\bapi\b/i, /\bstatus\b/i, /download/i,
-  /whitepaper/i, /case[- ]stud/i, /tutorial/i, /quickstart/i,
+  /quickstart/i,
+];
+const SOFT_EVIDENCE_PATTERNS = [
+  /pricing/i, /whitepaper/i, /case[- ]stud/i, /tutorial/i,
   /playground/i, /open[- ]source/i, /\bblog\b/i,
 ];
 
 /**
  * Grand-claim sentences per 100 sentences, discounted by evidence.
  * CLAIM_SLOPE = 9: ~11 claim-sentences/100 saturates before the discount.
- * EVIDENCE_FULL_AT = 8: eight distinct evidence links earn the max discount.
+ * EVIDENCE_FULL_AT = 8: eight WEIGHTED evidence units earn the max discount.
  * PROOF_DISCOUNT = 0.5: evidence MITIGATES grand claims, it doesn't erase
  * them — a docs link shouldn't zero out twenty "world's first" claims.
  * (The old 0.75 discount let every real page with a nav bar off the hook.)
@@ -309,8 +367,10 @@ const CLAIM_SLOPE = 9;
 const EVIDENCE_FULL_AT = 8;
 const PROOF_DISCOUNT = 0.5;
 
-function isEvidenceLink(href: string, text: string): boolean {
-  return EVIDENCE_PATTERNS.some((re) => re.test(href) || re.test(text));
+function evidenceWeight(href: string, text: string): number {
+  if (HARD_EVIDENCE_PATTERNS.some((re) => re.test(href) || re.test(text))) return 1;
+  if (SOFT_EVIDENCE_PATTERNS.some((re) => re.test(href) || re.test(text))) return 0.5;
+  return 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -345,6 +405,13 @@ function splitSentences(text: string): string[] {
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 }
+
+// v3: hype punches are short. A sentence OPENING with a vague action verb —
+// "Unlock your potential." — is a slogan wearing a sentence's clothes, so
+// the 5-word judging gate drops to 3 for these. Everything else still
+// needs 5+ words before the nose judges it.
+const VAGUE_IMPERATIVE_RE =
+  /^(discover|unlock|unleash|transform|elevate|empower|supercharge|reimagine|revolutionize|disrupt)\b/i;
 
 /* ------------------------------------------------------------------ */
 /* 4. Social-proof sketchiness (15%)                                   */
@@ -385,6 +452,12 @@ const TRUST_NO_NAMES_PTS = 45;
 const ANON_TESTIMONIAL_PTS = 30;
 const LOGO_WALL_PTS = 30;
 const LOGO_WALL_MIN = 4;
+// v3: a testimonial with a full name + role + company is verifiable —
+// attributed praise is proof, anonymous praise is vapor. Each one shaves
+// 20 sketch points (floored at 0).
+const VERIFIED_TESTIMONIAL_PTS = 20;
+const VERIFIED_TESTIMONIAL_RE =
+  /"[^"]{25,220}"\s*[-–—]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*,\s*[^,\n]{2,60}?\s+at\s+[A-Z][\w&.'-]*/gi;
 
 /* ------------------------------------------------------------------ */
 /* 5. Pricing opacity (10%)                                            */
@@ -395,6 +468,12 @@ const SALES_ONLY_RE = /contact sales|talk to sales|book a demo|request a demo|sc
 const NO_PRICING_DEV_MITIGATED = 40;
 const NO_PRICING_SALES_ONLY = 75;
 const NO_PRICING_BARE = 100;
+// v3: a price number with NO billing period ("$49" with no /mo, /year,
+// one-time, per-seat) is half-hidden — the number exists but the terms
+// don't. 15, not 0. Includes the CJK period words (每月 = per month,
+// 每年 = per year) so non-English pages aren't misjudged.
+const PERIOD_RE = /\/(mo|month|yr|year)\b|per (user|seat|month|year)|one-?time|lifetime|\bannual\b|每月|每年|一次性/i;
+const PRICE_SIGNALS_NO_PERIOD = 15;
 
 /* ------------------------------------------------------------------ */
 /* 6. Freshness (10%)                                                  */
@@ -483,6 +562,17 @@ function isNonEnglishText(text: string): boolean {
 }
 
 /**
+ * The page's hero headline — first <h1>, tags stripped. v3 weights
+ * buzzword hits here double: the headline is the first thing a visitor
+ * reads and the first place a hype-drunk page shows it.
+ */
+function extractH1(html: string): string {
+  const m = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/i);
+  if (!m) return '';
+  return m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
  * Strip header/nav/footer chrome (and common nav/menu containers) from the
  * HTML before counting evidence links. §2.4's proof discount is for EVIDENCE
  * — docs, changelog, live demo — and every real page's nav bar already
@@ -522,11 +612,15 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
   // buzzword/claim/vague entirely and judge on the remaining three checks.
   const languageSkipped = isNonEnglishText(fullText);
 
-  // --- 1. Buzzword density ---
+  // --- 1. Buzzword density (v3: hero hits count double) ---
   const { hits: buzzHits, top: topPhrases } = languageSkipped
     ? { hits: 0, top: [] as PhraseHit[] }
     : countBuzzwords(fullText);
-  const buzzDensity = wordCount > 0 ? (buzzHits / wordCount) * 100 : 0;
+  // The h1's hits are already inside buzzHits (it's part of the visible
+  // text) — counting them once more makes the hero weight 2×.
+  const heroHits = languageSkipped ? 0 : countBuzzwords(extractH1(html)).hits;
+  const buzzHitsTotal = buzzHits + heroHits;
+  const buzzDensity = wordCount > 0 ? (buzzHitsTotal / wordCount) * 100 : 0;
   const mBuzzword = clamp(buzzDensity * BUZZWORD_SLOPE);
 
   // --- 2. Claim-to-proof ---
@@ -534,14 +628,19 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
     ? 0
     : sentences.filter((s) => CLAIM_PATTERNS.some((re) => re.test(s))).length;
   // Evidence counted from MAIN CONTENT only (v2) — the proof discount must
-  // be earned by the page, not gifted by its nav bar.
-  const evidenceLinks = contentLinks.filter((l) => isEvidenceLink(l.href, l.text)).length;
+  // be earned by the page, not gifted by its nav bar. v3 weights it: hard
+  // proof counts 1.0 per link, soft proof 0.5.
+  const evidenceLinks = contentLinks.filter((l) => evidenceWeight(l.href, l.text) > 0).length;
+  const evidenceUnits = contentLinks.reduce((sum, l) => sum + evidenceWeight(l.href, l.text), 0);
   const claimDensity = sentences.length > 0 ? (claimSentences / sentences.length) * 100 : 0;
-  const proofFactor = 1 - PROOF_DISCOUNT * Math.min(1, evidenceLinks / EVIDENCE_FULL_AT);
+  const proofFactor = 1 - PROOF_DISCOUNT * Math.min(1, evidenceUnits / EVIDENCE_FULL_AT);
   const mClaimProof = clamp(claimDensity * CLAIM_SLOPE * proofFactor);
 
-  // --- 3. Vague-verb index ---
-  const judged = sentences.filter((s) => s.split(/\s+/).length >= 5);
+  // --- 3. Vague-verb index (v3: vague imperatives judged from 3+ words) ---
+  const judged = sentences.filter((s) => {
+    const n = s.split(/\s+/).length;
+    return n >= 5 || (n >= 3 && VAGUE_IMPERATIVE_RE.test(s));
+  });
   const vague = languageSkipped ? 0 : judged.filter((s) => !isConcreteSentence(s)).length;
   const mVague = judged.length > 0 ? clamp((vague / judged.length) * 100) : 0;
 
@@ -573,6 +672,10 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
   const logoImages = images.filter(isLogoImg).length;
   const unwrappedLogos = extractImages(htmlNoAnchors).filter(isLogoImg).length;
   if (unwrappedLogos >= LOGO_WALL_MIN) mSocial += LOGO_WALL_PTS;
+  // v3: verifiable testimonials (full name + role + company) are proof —
+  // attributed praise buys back sketch points, floored at 0.
+  const verifiedTestimonials = [...fullText.matchAll(VERIFIED_TESTIMONIAL_RE)].length;
+  if (verifiedTestimonials > 0) mSocial = Math.max(0, mSocial - VERIFIED_TESTIMONIAL_PTS);
   mSocial = clamp(mSocial);
 
   // --- 5. Pricing opacity (v2) ---
@@ -587,9 +690,13 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
   const hasPricing = links.some((l) => /pricing/i.test(l.href) || /pricing/i.test(l.text));
   const hasPriceSignals = PRICE_SIGNAL_RE.test(fullText);
   const salesOnly = !hasPricing && SALES_ONLY_RE.test(fullText);
+  // v3: the period matters — a number with no billing period is half-hidden.
+  const hasPeriod = PERIOD_RE.test(fullText);
   const mPricing = hasPricing
     ? hasPriceSignals
-      ? 0
+      ? hasPeriod
+        ? 0
+        : PRICE_SIGNALS_NO_PERIOD
       : PRICING_LINK_NO_SIGNALS
     : salesOnly
       ? NO_PRICING_SALES_ONLY
@@ -614,6 +721,14 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
   } else {
     const age = currentYear - refYear;
     mFreshness = age <= 0 ? 0 : age === 1 ? 20 : age === 2 ? 40 : 70;
+    // v3: a page promising ongoing updates (blog/changelog link) but
+    // showing nothing newer than two years is abandoned — floor at 50.
+    const promisesUpdates = links.some(
+      (l) => /blog|changelog/i.test(l.href) || /blog|changelog/i.test(l.text),
+    );
+    if (promisesUpdates && refYear <= currentYear - 2) {
+      mFreshness = Math.max(mFreshness, 50);
+    }
   }
 
   const metrics: MetricScores = {
@@ -657,13 +772,14 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
   const evidence: ScoreEvidence = {
     words: wordCount,
     sentences: sentences.length,
-    buzzword_hits: buzzHits,
+    buzzword_hits: buzzHitsTotal,
     top_phrases: topPhrases.slice(0, 5),
     claim_sentences: claimSentences,
     evidence_links: evidenceLinks,
     vague_sentences: vague,
     trust_mentions: trustMatches.length,
     anonymous_testimonials: anonTestimonials,
+    verified_testimonials: verifiedTestimonials,
     logo_images: logoImages,
     has_pricing: hasPricing,
     has_price_signals: hasPriceSignals,

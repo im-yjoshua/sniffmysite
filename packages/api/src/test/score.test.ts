@@ -54,10 +54,10 @@ describe('scorePage', () => {
     assert.equal(sum, 100);
   });
 
-  it('algo_version is v2', () => {
-    assert.equal(ALGO_VERSION, 'v2');
+  it('algo_version is v3', () => {
+    assert.equal(ALGO_VERSION, 'v3');
     const r = scorePage(CLEAN_HTML, 'https://example.com', FIXED_NOW);
-    assert.equal(r.algo_version, 'v2');
+    assert.equal(r.algo_version, 'v3');
   });
 
   it('tier boundaries match the spec (sniff-keyed: higher = more real)', () => {
@@ -365,5 +365,145 @@ describe('scorePage public-number contract', () => {
       r.verdict.includes('no live demo to be found'),
       `missing-evidence sentence intact: ${r.verdict}`,
     );
+  });
+});
+
+describe('scorePage v3 — sharper detection (weights and tiers locked)', () => {
+  it('v3: hero buzzwords count double', () => {
+    const filler =
+      'Our company builds software tools for teams. We publish documentation and changelogs every week. Support answers within one business day. ';
+    const hero = `<html><head><title>H</title></head><body>
+<h1>Our seamless onboarding</h1>
+<p>Plain text here with enough words to be normal.</p>
+<p>${filler.repeat(3)}</p>
+<footer>© 2026 H</footer></body></html>`;
+    const body = `<html><head><title>B</title></head><body>
+<h1>Our onboarding</h1>
+<p>Our seamless onboarding flow is plain and normal here.</p>
+<p>${filler.repeat(3)}</p>
+<footer>© 2026 B</footer></body></html>`;
+    const a = scorePage(hero, 'https://a.example', FIXED_NOW);
+    const b = scorePage(body, 'https://b.example', FIXED_NOW);
+    assert.equal(a.evidence.buzzword_hits, 2, 'h1 hit counts twice');
+    assert.equal(b.evidence.buzzword_hits, 1, 'body hit counts once');
+    assert.ok(
+      a.metrics.buzzword_density > b.metrics.buzzword_density,
+      'hero hype scores hotter',
+    );
+  });
+
+  it('v3: 2026-era hype words count ("vibe coding", "dominate", …)', () => {
+    const html = `<html><head><title>V</title></head><body>
+<h1>Ship it</h1>
+<p>We do vibe coding to help you dominate your market and crush your goals, from idea to hockey stick growth in record time.</p>
+<footer>© 2026 V</footer></body></html>`;
+    const r = scorePage(html, 'https://v.example', FIXED_NOW);
+    // All six phrases detected (hits), and the top-5 display list keeps the
+    // alphabetically-first ones — evidence.top_phrases truncates at 5.
+    assert.ok(r.evidence.buzzword_hits >= 6, `expected 6+ hits, got ${r.evidence.buzzword_hits}`);
+    const phrases = r.evidence.top_phrases.map((p) => p.phrase);
+    assert.ok(phrases.some((p) => p.includes('dominate')), `dominate counted: ${phrases.join(', ')}`);
+    assert.ok(phrases.some((p) => p.includes('crush your')), `crush your counted: ${phrases.join(', ')}`);
+  });
+
+  it('v3: new grand-claim shapes fire', () => {
+    const html = `<html><head><title>X</title></head><body>
+<h1>X</h1>
+<p>We are the only platform that does this. It is the first of its kind. This has never been done before. Impossible outcomes delivered daily.</p>
+<p>Concrete detail: the dashboard ships today with docs. © 2026 X</p>
+</body></html>`;
+    const r = scorePage(html, 'https://x.example', FIXED_NOW);
+    assert.ok(
+      r.evidence.claim_sentences >= 4,
+      `expected 4+ claim sentences, got ${r.evidence.claim_sentences}`,
+    );
+    // …but the innocent "the only thing we store" stays innocent.
+    const innocent = scorePage(
+      `<html><head><title>Y</title></head><body><h1>Y</h1>
+<p>The only thing we store is your email. Concrete numbers: 40ms p99. © 2026 Y</p>
+</body></html>`,
+      'https://y.example',
+      FIXED_NOW,
+    );
+    assert.equal(innocent.evidence.claim_sentences, 0, '"the only thing we store" is not a grand claim');
+  });
+
+  it('v3: hard proof discounts more than soft proof', () => {
+    const sober = Array.from(
+      { length: 8 },
+      (_, i) => `<p>Feature ${i + 1} ships in the dashboard today.</p>`,
+    ).join('\n');
+    const mk = (links: string) =>
+      `<html><head><title>E</title></head><body>
+<h1>Welcome</h1>
+<p>We are the best platform on Earth, honestly.</p>
+${sober}
+<p>${links}</p>
+<footer>© 2026 E</footer></body></html>`;
+    const hard = scorePage(
+      mk('<a href="/docs">Docs</a> <a href="/changelog">Changelog</a>'),
+      'https://hard.example',
+      FIXED_NOW,
+    );
+    const soft = scorePage(
+      mk('<a href="/blog">Blog</a> <a href="/whitepaper">Whitepaper</a>'),
+      'https://soft.example',
+      FIXED_NOW,
+    );
+    assert.equal(hard.evidence.evidence_links, 2);
+    assert.equal(soft.evidence.evidence_links, 2);
+    assert.ok(
+      soft.metrics.claim_to_proof > hard.metrics.claim_to_proof,
+      `soft proof discounts less: soft=${soft.metrics.claim_to_proof} hard=${hard.metrics.claim_to_proof}`,
+    );
+  });
+
+  it('v3: short hype slogans are judged ("Unlock your potential.")', () => {
+    const html = `<html><head><title>V</title></head><body>
+<h1>Hi</h1>
+<p>Unlock your potential.</p>
+<p>The cat sat.</p>
+<p>Concrete numbers: 99% uptime SLA.</p>
+<footer>© 2026 V</footer></body></html>`;
+    const r = scorePage(html, 'https://v.example', FIXED_NOW);
+    assert.equal(r.evidence.vague_sentences, 1, 'only the imperative slogan is vague');
+    assert.equal(r.metrics.vague_verb, 50, '1 of 2 judged sentences vague → 50');
+  });
+
+  it('v3: verifiable testimonials buy back sketch points', () => {
+    const anon = `<html><head><title>A</title></head><body>
+<h1>A</h1>
+<p>"This product changed everything" — CEO</p>
+<footer>© 2026 A</footer></body></html>`;
+    const verified = `<html><head><title>B</title></head><body>
+<h1>B</h1>
+<p>"This product changed everything" — Jane Smith, VP Marketing at Acme Corp</p>
+<footer>© 2026 B</footer></body></html>`;
+    const a = scorePage(anon, 'https://a.example', FIXED_NOW);
+    const b = scorePage(verified, 'https://b.example', FIXED_NOW);
+    assert.equal(a.metrics.social_proof, 30, 'anonymous role-only testimonial → +30');
+    assert.equal(b.metrics.social_proof, 0, 'verifiable testimonial → credit wipes it');
+    assert.equal(b.evidence.verified_testimonials, 1);
+  });
+
+  it('v3: price numbers with no billing period are half-hidden', () => {
+    const mk = (priceLine: string) =>
+      `<html><head><title>P</title></head><body>
+<nav><a href="/pricing">Pricing</a></nav><h1>Plans</h1><p>${priceLine}</p>
+<footer>© 2026 P</footer></body></html>`;
+    const bare = scorePage(mk('Only $49. No hidden fees.'), 'https://a.example', FIXED_NOW);
+    const termed = scorePage(mk('Only $49/mo. No hidden fees.'), 'https://b.example', FIXED_NOW);
+    assert.equal(bare.metrics.pricing_opacity, 15, '"$49" with no period → 15');
+    assert.equal(termed.metrics.pricing_opacity, 0, '"$49/mo" → 0');
+  });
+
+  it('v3: abandoned blog floors the freshness penalty', () => {
+    const mk = (blog: string) =>
+      `<html><head><title>A</title></head><body>
+<h1>Hi</h1>${blog}<footer>© 2024 A</footer></body></html>`;
+    const abandoned = scorePage(mk('<p><a href="/blog">Blog</a></p>'), 'https://a.example', FIXED_NOW);
+    const quiet = scorePage(mk(''), 'https://b.example', FIXED_NOW);
+    assert.equal(quiet.metrics.freshness, 40, '2-year-old ©, no blog → 40');
+    assert.equal(abandoned.metrics.freshness, 50, '2-year-old © + blog link → floored at 50');
   });
 });

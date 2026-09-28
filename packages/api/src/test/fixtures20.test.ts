@@ -50,7 +50,7 @@ const VALID_TIERS = [
   'LION FOOD',
 ] as const;
 
-describe('20-site fixture suite (vapor v2 engine, sniff v2 display)', () => {
+describe('20-site fixture suite (vapor v3 engine, sniff v3 display)', () => {
   it('loads exactly 20 fixtures', () => {
     const fixtures = loadFixtures();
     assert.equal(fixtures.length, 20, `expected 20 fixtures, got ${fixtures.length}`);
@@ -74,7 +74,7 @@ describe('20-site fixture suite (vapor v2 engine, sniff v2 display)', () => {
         `${fixture.domain}: bad tier ${result.tier}`,
       );
       assert.equal(result.tier, tierFor(result.sniff_score), `${fixture.domain}: tier mismatch`);
-      assert.equal(result.algo_version, 'v2');
+      assert.equal(result.algo_version, 'v3');
       assert.equal(result.algo_version, ALGO_VERSION);
       assert.match(result.snapshot_hash, /^[0-9a-f]{64}$/, `${fixture.domain}: bad hash`);
       assert.ok(result.verdict.includes(`${result.sniff_score}/100`), `${fixture.domain}: verdict missing score`);

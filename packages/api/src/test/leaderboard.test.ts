@@ -79,9 +79,9 @@ describe('seed data', () => {
         `out of order at ${i}`,
       );
     }
-    // apple.com is the least vapor (8) → the highest sniff (92).
+    // apple.com is the least vapor (10) → the highest sniff (90).
     assert.equal(entries[0].domain, 'apple.com');
-    assert.equal(entries[0].sniff_score, 92);
+    assert.equal(entries[0].sniff_score, 90);
   });
 
   it('sort=improved is stable alphabetical with delta: null everywhere', () => {
@@ -163,9 +163,9 @@ describe('GET /api/vapor/leaderboard', () => {
     assert.equal(status, 200);
     assert.equal(body.sort, 'real');
     assert.equal(body.count, 20);
-    assert.equal(body.algo_version, 'v2');
+    assert.equal(body.algo_version, 'v3');
     assert.equal(body.entries[0].domain, 'apple.com');
-    assert.equal(body.entries[0].sniff_score, 92);
+    assert.equal(body.entries[0].sniff_score, 90);
     assert.ok(body.entries[0].sniff_score >= body.entries[1].sniff_score);
   });
 
