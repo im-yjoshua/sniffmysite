@@ -624,10 +624,10 @@ export async function fetchRecentScans(): Promise<ApiRecentScan[]> {
   return body.scans;
 }
 
-/* ---- Trending board ("Most sniffed") ---- */
+/* ---- Trending board ("The People's Choice") ---- */
 
 /**
- * One row of the "Most sniffed" board (GET /api/vapor/trending). Mirrors
+ * One row of the "The People's Choice" board (GET /api/vapor/trending). Mirrors
  * packages/api/src/lib/recent.ts — host only, never full URLs.
  */
 export interface ApiTrendingHost {

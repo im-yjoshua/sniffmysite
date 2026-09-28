@@ -207,7 +207,7 @@ function LandingPage() {
         </ol>
       </section>
 
-      {/* 3 — The Standings, top 10. The live feed (ticker) already runs in
+      {/* 3 — The Grand Hall, top 10. The live feed (ticker) already runs in
           the navbar on every page: "Judgments, as they fall." */}
       <section className="mx-auto max-w-6xl px-6 pb-14 md:pb-20">
         <Reveal>
@@ -234,7 +234,7 @@ function LandingPage() {
           sponsorship never sits next to a ranking. */}
       <SponsorSlot sponsor={sponsors[0] ?? null} />
 
-      {/* 5 — Most sniffed: the pages people keep testing. */}
+      {/* 5 — The People's Choice: the pages people keep testing. */}
       <TrendingBoard />
 
       {/* 6 — The CTA band: one last gate before the footer. */}

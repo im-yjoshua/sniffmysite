@@ -37,8 +37,8 @@ const TAB_SUBLINES: Record<LeaderboardSort, string> = {
 };
 
 /**
- * The standings — the full sortable board.
- * Hairline-separated rows, tabular mono scores, mini seals — the standings
+ * The Grand Hall — the full sortable board.
+ * Hairline-separated rows, tabular mono scores, mini seals — the Grand Hall
  * ledger, not a dashboard. Data is real: engine-scored public landing pages.
  */
 export function LeaderboardPage() {
@@ -134,7 +134,7 @@ export function LeaderboardPage() {
         The official ranking
       </p>
       <h1 className="mt-4 font-inscription text-5xl font-bold uppercase tracking-tight md:text-6xl">
-        The Standings
+        The Grand Hall
       </h1>
       <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
         {entries === null

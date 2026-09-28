@@ -7,7 +7,7 @@ import { fetchThrone, createThroneCheckout, type ThroneState } from '../lib/api'
 /**
  * Pricing — the throne auction.
  *
- * The shop sells exactly ONE thing: the spotlight above the standings.
+ * The forum sells exactly ONE thing: the spotlight atop the Grand Hall.
  * Bidding opens at $19; stealing the throne costs $3 more than the
  * current holder paid. A paid bid takes the throne immediately and holds
  * it up to 3 days. The bid form collects the site URL first (validated
@@ -29,7 +29,7 @@ const STEPS = [
   {
     n: 'II',
     title: 'Take the throne immediately.',
-    body: 'Your site jumps the line: scanned first, roasted in full, pinned above the standings the moment payment lands.',
+    body: 'Your site jumps the line: scanned first, roasted in full, pinned at the top of the Grand Hall the moment payment lands.',
   },
   {
     n: 'III',
@@ -47,7 +47,7 @@ export function PricingPage() {
     <main className="mx-auto max-w-6xl px-6 pb-16 pt-10 md:pt-14">
       {/* Header row */}
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b-2 border-ink pb-4">
-        <p className="eyebrow text-ink-soft">The shop</p>
+        <p className="eyebrow text-ink-soft">The forum</p>
         <Link
           to="/"
           className="tap-target flex items-center gap-2 font-data text-sm font-medium uppercase tracking-[0.18em] text-ink-soft transition-colors hover:text-hazard"
@@ -63,7 +63,7 @@ export function PricingPage() {
           The throne is for sale.
         </h1>
         <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-soft">
-          One spotlight above the standings. Bidding opens at $19 &mdash;
+          One spotlight atop the Grand Hall. Bidding opens at $19 &mdash;
           outbid the holder by $3 and the throne is yours, roasted in full.
           What money can&rsquo;t buy: a single point of score.
         </p>

@@ -26,7 +26,7 @@ import { Ticker } from './Ticker';
  */
 const LINKS = [
   { to: '/#sniff', label: 'Sniff' },
-  { to: '/leaderboard', label: 'Leaderboard' },
+  { to: '/leaderboard', label: 'Grand Hall' },
   { to: '/battle', label: 'Battle' },
   { to: '/leaderboard#how-it-works', label: 'How it works' },
   { to: '/pricing', label: 'Pricing' },

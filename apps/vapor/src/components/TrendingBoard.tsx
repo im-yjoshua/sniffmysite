@@ -4,7 +4,7 @@ import { fetchTrending, ScanApiError, type ApiTrendingHost } from '../lib/api';
 import { TierMark } from './seals/TierMark';
 
 /**
- * "Most sniffed" — the trending board (§2.12 depth feature).
+ * "The People's Choice" — the trending board (§2.12 depth feature).
  * Fed by GET /api/vapor/trending (host only, never full URLs), ranked by
  * total successful scans. Each row: rank, host, latest sniff score + mini
  * seal, and the sniff count. Rows link to the scan judgment.
@@ -37,10 +37,10 @@ export function TrendingBoard() {
   return (
     <section
       className="border-t border-hairline"
-      aria-label="Most sniffed"
+      aria-label="The People's Choice"
     >
       <div className="mx-auto max-w-6xl px-6 py-14 md:py-16">
-        <p className="eyebrow text-ink-soft">Most sniffed</p>
+        <p className="eyebrow text-ink-soft">The people&rsquo;s choice</p>
         <p className="mt-4 max-w-2xl text-2xl font-bold leading-snug tracking-tight md:text-3xl">
           The pages people keep testing.
         </p>

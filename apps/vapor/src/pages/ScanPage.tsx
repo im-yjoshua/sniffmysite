@@ -210,8 +210,8 @@ function OneLiner({
   };
 
   return (
-    <section className="border-t border-hairline py-8 md:py-10" aria-label="The one-liner">
-      <p className="eyebrow text-ink-faint">The one-liner</p>
+    <section className="border-t border-hairline py-8 md:py-10" aria-label="The heckler">
+      <p className="eyebrow text-ink-faint">The heckler</p>
       <blockquote className="mt-4 max-w-3xl border-l-4 border-hazard pl-5 md:pl-6">
         <p className="text-2xl font-bold leading-snug tracking-tight md:text-3xl">
           &ldquo;{line}&rdquo;
@@ -534,10 +534,10 @@ export function ScanPage() {
             </div>
           </div>
 
-          {/* The findings — the verdict, in plain words. */}
-          <section className="border-t border-hairline py-8 md:py-10" aria-label="The findings">
+          {/* The reading — the verdict, in plain words. */}
+          <section className="border-t border-hairline py-8 md:py-10" aria-label="The reading">
             <p className="eyebrow text-ink-faint">
-              The findings
+              The reading
             </p>
             <p className="mt-4 max-w-3xl text-2xl font-bold leading-snug tracking-tight md:text-4xl">
               {result.verdict}

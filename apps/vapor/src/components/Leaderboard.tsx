@@ -12,13 +12,13 @@ import { SiteLogo } from './SiteLogo';
 interface LeaderboardProps {
   /** Fills the hero scan box with this domain when a row is clicked. */
   onSniffAgain: (domain: string) => void;
-  /** 'real' → The Standings (top 10, most real). 'vapor' → The Lions' Den
+  /** 'real' → The Grand Hall (top 10, most real). 'vapor' → The Lions' Den
    *  (bottom 5, most vapor). */
   variant?: 'real' | 'vapor';
 }
 
 /**
- * Standings preview — top 10 most real, real engine scores.
+ * Grand Hall preview — top 10 most real, real engine scores.
  * Hairline-separated rows (not cards), tabular mono sniff scores,
  * seal marks. Rows stagger in on load; hover lifts 1px and reveals
  * the "sniff again" affordance. Sorted the same way as the
@@ -46,7 +46,7 @@ export function Leaderboard({ onSniffAgain, variant = 'real' }: LeaderboardProps
   return (
     <section
       id={vapor ? 'lions-den' : 'standings'}
-      aria-label={vapor ? "The Lions' Den" : 'Standings leaderboard'}
+      aria-label={vapor ? "The Lions' Den" : 'The Grand Hall'}
       className="w-full"
     >
       {/* flex-wrap + min-w-0: on a 320px phone the "Top 10 · most real
@@ -61,7 +61,7 @@ export function Leaderboard({ onSniffAgain, variant = 'real' }: LeaderboardProps
               The Lions&rsquo; <span className="text-hazard">Den</span>
             </>
           ) : (
-            'The Standings'
+            'The Grand Hall'
           )}
         </h2>
         <span className="eyebrow min-w-0 text-ink-faint">

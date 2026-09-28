@@ -28,7 +28,7 @@ function dollars(cents: number): string {
 }
 
 /**
- * The Throne — the paid spotlight above the standings (Phase B7).
+ * The Throne — the paid spotlight atop the Grand Hall (Phase B7).
  *
  * Renders whatever GET /api/vapor/throne returns: the current holder
  * (labeled PAID, always — money bought the spotlight, never the score)
