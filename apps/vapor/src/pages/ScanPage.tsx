@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Languages, RotateCcw, Share2 } from 'lucide-react';
+import { ArrowLeft, Copy, Languages, RotateCcw, Share2 } from 'lucide-react';
 import { VerdictReveal } from '../components/VerdictReveal';
 import { MetricBars } from '../components/MetricBars';
 import { SharePopup } from '../components/SharePopup';
@@ -176,6 +176,60 @@ export function hostnameOf(url: string): string {
   } catch {
     return url;
   }
+}
+
+/**
+ * OneLiner — Gemini's single roast line, set as a pull-quote with a copy
+ * button. The share text is pre-built for pasting anywhere: the line, the
+ * domain, the score, and the sniff link.
+ */
+function OneLiner({
+  line,
+  domain,
+  sniffScore,
+  tier,
+}: {
+  line: string;
+  domain: string;
+  sniffScore: number;
+  tier: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const shareText =
+    `"${line}" — ${domain} sniffed ${sniffScore}/100 (${tier}) on SniffMySite: ` +
+    `https://sniffmysite.lol/scan?url=${encodeURIComponent(`https://${domain}`)}`;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <section className="border-t border-hairline py-8 md:py-10" aria-label="The one-liner">
+      <p className="eyebrow text-ink-faint">The one-liner</p>
+      <blockquote className="mt-4 max-w-3xl border-l-4 border-hazard pl-5 md:pl-6">
+        <p className="text-2xl font-bold leading-snug tracking-tight md:text-3xl">
+          &ldquo;{line}&rdquo;
+        </p>
+      </blockquote>
+      <button
+        type="button"
+        onClick={copy}
+        className="tap-target mt-5 inline-flex items-center gap-2 border border-hairline px-5 py-3 font-data text-sm font-bold uppercase tracking-wider text-ink transition-colors hover:border-hazard hover:text-hazard"
+      >
+        <Copy className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
+        {copied ? 'Copied' : 'Copy the line'}
+      </button>
+      <p className="mt-3 max-w-xl text-base leading-relaxed text-ink-soft">
+        One line, ready to post. The judges&apos; words, not ours.
+      </p>
+    </section>
+  );
 }
 
 /**
@@ -499,6 +553,18 @@ export function ScanPage() {
               </p>
             )}
           </section>
+
+          {/* The one-liner — Gemini's single shareable roast line. Hidden
+              entirely when the API couldn't produce one (no key, timeout,
+              cap): the verdict above always stands on its own. */}
+          {result.one_liner && (
+            <OneLiner
+              line={result.one_liner}
+              domain={hostnameOf(result.url).replace(/^www\./i, '')}
+              sniffScore={result.sniff_score}
+              tier={result.tier}
+            />
+          )}
 
           {/* Show your work — six smell checks, findings first. */}
           <section className="border-t border-hairline py-8 md:py-10" aria-label="Show your work">

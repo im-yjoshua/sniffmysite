@@ -39,6 +39,7 @@ import {
 import { hitRateLimit } from '../lib/ratelimit';
 import { scanAllowance, recordScan, recordGrant } from '../lib/scan-budget';
 import { recordRecentScan, getRecentScans, getTrendingHosts } from '../lib/recent';
+import { generateOneLiner } from '../lib/gemini';
 import { getMovers, isMoversWindow } from '../lib/movers';
 import { verifyPolarSignature, parsePolarEvent } from '../lib/polar';
 import {
@@ -191,7 +192,25 @@ vaporRouter.post('/scan', async (req, res) => {
     void processScanForWatchlist(page.finalUrl, result).catch((e) =>
       console.error('[watchlist]', e),
     );
-    return res.json(priority ? { ...result, priority: true } : result);
+    // The Gemini one-liner: a single shareable roast line. Bonus field —
+    // generateOneLiner resolves null on any failure (no key, timeout, cap),
+    // so the scan response never waits on it breaking.
+    let oneLiner: string | null = null;
+    try {
+      const domain = new URL(page.finalUrl).hostname.replace(/^www\./i, '');
+      oneLiner = await generateOneLiner({
+        domain,
+        sniffScore: result.sniff_score,
+        tier: result.tier,
+        verdict: result.verdict,
+        topPhrases: result.evidence.top_phrases.map((p) => p.phrase),
+        snapshotHash: result.snapshot_hash,
+      });
+    } catch {
+      oneLiner = null;
+    }
+    const one_liner = oneLiner;
+    return res.json(priority ? { ...result, priority: true, one_liner } : { ...result, one_liner });
   } catch (err) {
     if (err instanceof FetchError) {
       // Every fetch failure leaves here as a structured, machine-readable

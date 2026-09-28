@@ -34,6 +34,9 @@ export interface ApiScanResult {
   evidence: ScoreEvidence;
   /** Present and true when the scan ran on the paid priority lane (Task 10). */
   priority?: boolean;
+  /** Gemini's one human-sounding roast line — null when unavailable (no key,
+   * timeout, cap). The scan page hides the section when null. */
+  one_liner: string | null;
 }
 
 export interface ScoreEvidence {

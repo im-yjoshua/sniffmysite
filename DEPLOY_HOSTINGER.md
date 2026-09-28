@@ -27,6 +27,10 @@ Kept below for reference if the plan ever changes.
    - Resend (`RESEND_API_KEY` + verified `RESEND_FROM_EMAIL`): **optional at
      launch** — unset = magic links log to the server console, endpoint still
      works. Add it later when claim emails matter.
+   - `GEMINI_API_KEY` ← from Google AI Studio (aistudio.google.com): **optional
+     at launch** — unset = the scan page hides the "one-liner" roast section,
+     scans work fine. Model used: `gemini-3.5-flash`. Spend is guarded in code
+     (30 calls/min, 300/day, per-page cache).
    - Leave all `LEMONSQUEEZY_*` unset — billing is test-mode only until Polar.
 5. Note the app's public URL. That's your `VITE_API_URL`.
 
