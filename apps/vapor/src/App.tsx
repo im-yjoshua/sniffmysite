@@ -220,7 +220,7 @@ function LandingPage() {
             to="/leaderboard"
             className="tap-target inline-flex min-h-[44px] items-center font-data text-sm font-medium uppercase tracking-[0.18em] text-ink-soft transition-colors hover:text-hazard"
           >
-            See the full standings
+            See the full Grand Hall
           </Link>
         </p>
       </section>

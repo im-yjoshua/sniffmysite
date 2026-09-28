@@ -39,7 +39,7 @@ export function RefundsPage() {
 
       <Law n="III" title="What a refund does">
         <p>
-          When a payment is refunded, the 7-day pin above the standings is
+          When a payment is refunded, the 7-day pin above the Grand Hall is
           removed immediately — the spotlight was part of what you paid
           for. The roast itself stays published in the site&rsquo;s
           history, like a match that already happened.

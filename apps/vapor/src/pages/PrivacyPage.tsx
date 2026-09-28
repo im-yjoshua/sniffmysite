@@ -11,7 +11,7 @@ export function PrivacyPage() {
     <LegalShell
       eyebrow="What the arena remembers"
       title="Privacy policy"
-      intro="The short version: there are no accounts, no passwords, no ad trackers. We remember scanned pages and their scores — that's the leaderboard. Everything else stays with you or with Polar."
+      intro="The short version: there are no accounts, no passwords, no ad trackers. We remember scanned pages and their scores — that's the Grand Hall. Everything else stays with you or with Polar."
     >
       <Law n="I" title="No accounts, no identity">
         <p>
@@ -25,7 +25,7 @@ export function PrivacyPage() {
         <p>
           When you scan a page, we store the URL you entered, the public
           page content our software fetched to judge it, and the resulting
-          score and verdict. That&rsquo;s what the leaderboard is made of.
+          score and verdict. That&rsquo;s what the Grand Hall is made of.
         </p>
         <p>
           If you buy a Featured Roast, our checkout provider Polar collects

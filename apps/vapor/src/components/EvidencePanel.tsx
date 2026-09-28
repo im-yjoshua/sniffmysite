@@ -99,7 +99,7 @@ export function EvidencePanel({
           </p>
         ) : (
           <p className="mt-3 text-lg leading-relaxed text-ink-faint">
-            The lab notes for this sniff didn’t survive. Sniff the site again
+            The judge’s notes for this sniff didn’t survive. Sniff the site again
             for the full breakdown.
           </p>
         )}
@@ -164,7 +164,7 @@ export function EvidencePanel({
         </div>
         {evidence && (
           <p className="mt-5 font-data text-sm leading-relaxed text-ink-faint">
-            Lab notes — we read {evidence.words.toLocaleString()} words
+            Judge’s notes — we read {evidence.words.toLocaleString()} words
             across {evidence.sentences.toLocaleString()} sentences.
           </p>
         )}

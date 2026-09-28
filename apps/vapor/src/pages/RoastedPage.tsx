@@ -85,7 +85,7 @@ export function RoastedPage() {
             to="/leaderboard"
             className="tap-target inline-flex w-full items-center justify-center gap-2 bg-hazard px-8 py-4 font-data text-base font-bold uppercase tracking-wider text-paper transition-colors hover:bg-hazard-deep md:w-auto"
           >
-            Watch the standings
+            Watch the Grand Hall
           </Link>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-soft">
             Your roast appears at the top of the board the moment it&rsquo;s

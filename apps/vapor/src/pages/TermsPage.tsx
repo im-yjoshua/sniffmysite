@@ -33,10 +33,10 @@ export function TermsPage() {
           Anyone may scan any publicly accessible landing page — no account,
           no fee. Scanning fetches the page the way a visitor&rsquo;s
           browser would and stores the URL, the score, and the verdict so
-          the leaderboard can rank it.
+          the Grand Hall can rank it.
         </p>
         <p>
-          If a page you own appears on the leaderboard and you&rsquo;d
+          If a page you own appears in the Grand Hall and you&rsquo;d
           rather it didn&rsquo;t, email us and we&rsquo;ll remove it.
         </p>
       </Law>
@@ -46,7 +46,7 @@ export function TermsPage() {
           The Featured Roast is a one-time $19 purchase, paid through our
           checkout provider, Polar. It buys three things: your site jumps
           the scan queue, its roast is published, and it is pinned above
-          the standings for 7 days — always labeled as paid.
+          the Grand Hall for 7 days — always labeled as paid.
         </p>
         <p>
           It does not buy a score. Every page is judged by the same engine

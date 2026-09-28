@@ -38,7 +38,7 @@ const LAB_ERRORS: Record<string, LabError> = {
   request_timeout: {
     title: 'The tester is taking too long.',
     detail:
-      'Your connection might be slow, or our lab is waking up. Try again.',
+      'Your connection might be slow, or the arena is waking up. Try again.',
     primary: 'retry',
   },
   invalid_url: {
@@ -112,7 +112,7 @@ const LAB_ERRORS: Record<string, LabError> = {
     primary: 'retry',
   },
   rate_limited: {
-    title: 'Slow down \u2014 the lab is busy.',
+    title: 'Slow down \u2014 the arena is busy.',
     detail: 'Too many tests in a short time. Wait a bit, then try again.',
     primary: 'retry',
   },
@@ -546,7 +546,7 @@ export function ScanPage() {
               <p className="mt-5 flex max-w-3xl items-start gap-2.5 border border-hairline bg-paper px-4 py-3 text-base leading-relaxed text-ink-soft">
                 <Languages className="mt-0.5 h-5 w-5 shrink-0 text-hazard" strokeWidth={2.25} aria-hidden="true" />
                 <span>
-                  <span className="font-data text-sm font-bold uppercase tracking-wider">Lab note — </span>
+                  <span className="font-data text-sm font-bold uppercase tracking-wider">Judge's note — </span>
                   {result.evidence.language_note}. The score above comes from
                   the checks that work in any language.
                 </span>
@@ -604,7 +604,7 @@ export function ScanPage() {
           <section className="border-t border-hairline py-8 md:py-10" aria-label="Get featured">
             <p className="eyebrow text-ink-faint">The spotlight</p>
             <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
-              Proud of this roast? $19 pins your site above the standings
+              Proud of this roast? $19 pins your site above the Grand Hall
               for 7 days &mdash; scanned first, roasted in full, labeled as
               paid.
             </p>
