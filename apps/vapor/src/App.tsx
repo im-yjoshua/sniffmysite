@@ -13,6 +13,9 @@ import { ComparePage } from './pages/ComparePage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { PricingPage } from './pages/PricingPage';
 import { RoastedPage } from './pages/RoastedPage';
+import { TermsPage } from './pages/TermsPage';
+import { PrivacyPage } from './pages/PrivacyPage';
+import { RefundsPage } from './pages/RefundsPage';
 import { AdminSponsorsPage } from './pages/AdminSponsorsPage';
 import { SponsorSlot } from './components/SponsorSlot';
 import { fetchSponsors, type PublicSponsor } from './lib/api';
@@ -37,6 +40,10 @@ export function App() {
         <Route path="/pricing" element={<PricingPage />} />
         {/* Polar success URL (?checkout_id=… is display-only). */}
         <Route path="/roasted" element={<RoastedPage />} />
+        {/* Legal routes — allowed outside the five-route ceiling. */}
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/refunds" element={<RefundsPage />} />
         {/* Internal: banner approvals. Not linked from the site. */}
         <Route path="/admin/sponsors" element={<AdminSponsorsPage />} />
         <Route path="*" element={<NotFound />} />

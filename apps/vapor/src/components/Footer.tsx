@@ -76,6 +76,12 @@ const SITE_LINKS = [
   { to: '/pricing', label: 'Pricing' },
 ];
 
+const LEGAL_LINKS = [
+  { to: '/terms', label: 'Terms' },
+  { to: '/privacy', label: 'Privacy' },
+  { to: '/refunds', label: 'Refunds' },
+];
+
 function LinkColumn({
   title,
   links,
@@ -168,6 +174,11 @@ export function Footer() {
               title="The site"
               links={SITE_LINKS}
               ariaLabel="Site"
+            />
+            <LinkColumn
+              title="The fine print"
+              links={LEGAL_LINKS}
+              ariaLabel="Legal"
             />
           </div>
         </div>
