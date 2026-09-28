@@ -211,3 +211,72 @@ describe('applyThroneOrderRefunded', () => {
     assert.equal((await store.getStatus()).occupied, false);
   });
 });
+
+describe('supabaseThroneStore.claim via claim_throne RPC', () => {
+  // The RPC is the atomicity guarantee (007): one transaction behind
+  // SELECT ... FOR UPDATE. Here we stub the Supabase client and assert the
+  // store calls the RPC with the right params and honors its verdicts.
+  async function withStubbedClient(
+    rpcImpl: (params: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>,
+    fn: (seen: { params: Record<string, unknown> | null }) => Promise<void>,
+  ) {
+    const seen: { params: Record<string, unknown> | null } = { params: null };
+    const supabaseMod = (await import('../lib/supabase.js')) as Record<string, unknown>;
+    const real = supabaseMod.getSupabase;
+    const client = {
+      schema: (_s: string) => ({
+        rpc: async (_fn: string, params: Record<string, unknown>) => {
+          seen.params = params;
+          return rpcImpl(params);
+        },
+      }),
+    };
+    supabaseMod.getSupabase = () => client;
+    try {
+      await fn(seen);
+    } finally {
+      supabaseMod.getSupabase = real;
+    }
+  }
+
+  it("calls billing.claim_throne and returns 'installed'", async () => {
+    const { supabaseThroneStore } = await import('../lib/throne.js');
+    await withStubbedClient(
+      async () => ({ data: 'installed', error: null }),
+      async (seen) => {
+        const outcome = await supabaseThroneStore().claim(bid('ord_9', 2200));
+        assert.equal(outcome, 'installed');
+        assert.equal(seen.params?.p_order_id, 'ord_9');
+        assert.equal(seen.params?.p_price_cents, 2200);
+        assert.equal(seen.params?.p_domain, 'example.com');
+        assert.ok(typeof seen.params?.p_now === 'string');
+        assert.ok(typeof seen.params?.p_expires_at === 'string');
+        assert.ok(
+          Date.parse(seen.params.p_expires_at as string) >
+            Date.parse(seen.params.p_now as string),
+        );
+      },
+    );
+  });
+
+  it("returns 'duplicate' when the RPC reports a redelivery", async () => {
+    const { supabaseThroneStore } = await import('../lib/throne.js');
+    await withStubbedClient(
+      async () => ({ data: 'duplicate', error: null }),
+      async () => {
+        const outcome = await supabaseThroneStore().claim(bid('ord_9', 2200));
+        assert.equal(outcome, 'duplicate');
+      },
+    );
+  });
+
+  it('throws when the RPC fails (Polar redelivers the webhook)', async () => {
+    const { supabaseThroneStore } = await import('../lib/throne.js');
+    await withStubbedClient(
+      async () => ({ data: null, error: new Error('db down') }),
+      async () => {
+        await assert.rejects(() => supabaseThroneStore().claim(bid('ord_x', 1900)));
+      },
+    );
+  });
+});

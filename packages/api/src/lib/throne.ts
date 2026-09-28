@@ -84,8 +84,9 @@ export interface ThroneStore {
   vacateOnRefund(orderId: string): Promise<boolean>;
 }
 
-/** In-process mutex — serializes concurrent webhook deliveries so two
- *  order.paid events can't interleave a read-modify-write on the throne. */
+/** In-process mutex — a cheap local serializer so one instance doesn't
+ *  hammer the claim RPC concurrently. The real guarantee is the row lock
+ *  inside billing.claim_throne (007): it serializes across instances. */
 function makeMutex() {
   let tail: Promise<void> = Promise.resolve();
   return async function runExclusive<T>(fn: () => Promise<T>): Promise<T> {
@@ -193,56 +194,31 @@ export function supabaseThroneStore(): ThroneStore {
 
     claim: (input, now = new Date()) =>
       mutex(async () => {
-        const existing = await bids()
-          .select('order_id')
-          .eq('order_id', input.order_id)
-          .maybeSingle();
-        if (existing.error) throw existing.error;
-        if (existing.data) return 'duplicate';
-
-        const expiresAt = new Date(now.getTime() + THRONE_HOLD_MS).toISOString();
-        const { error: bidError } = await bids().insert({
-          order_id: input.order_id,
-          url: input.url,
-          domain: input.domain,
-          price_cents: input.price_cents,
-          score: input.score,
-          tier: input.tier,
-          roast: input.roast,
-          buyer_email: input.buyer_email,
-          paid_at: now.toISOString(),
-          expires_at: expiresAt,
-          status: 'holding',
-        });
-        if (bidError) {
-          if ((bidError as { code?: string }).code === '23505') return 'duplicate';
-          throw bidError;
+        // One transaction behind SELECT ... FOR UPDATE on the singleton
+        // row (see supabase/007_throne_claim_rpc.sql): the mutex only
+        // serializes this Node process, the row lock serializes everything.
+        // Because insert + dethrone + install are atomic, a crash can no
+        // longer leave a paid buyer permanently uninstalled.
+        const expiresAt = new Date(now.getTime() + THRONE_HOLD_MS);
+        const { data, error } = await getSupabase()
+          .schema('billing')
+          .rpc('claim_throne', {
+            p_order_id: input.order_id,
+            p_url: input.url,
+            p_domain: input.domain,
+            p_price_cents: input.price_cents,
+            p_score: input.score,
+            p_tier: input.tier,
+            p_roast: input.roast,
+            p_buyer_email: input.buyer_email,
+            p_now: now.toISOString(),
+            p_expires_at: expiresAt.toISOString(),
+          });
+        if (error) throw error;
+        if (data !== 'installed' && data !== 'duplicate') {
+          throw new Error(`unexpected claim_throne result: ${String(data)}`);
         }
-
-        // Dethrone whoever holds it (if anyone), then install the new holder.
-        const current = await readState(now);
-        if (current.holder) {
-          await bids()
-            .update({ status: 'dethroned' })
-            .eq('order_id', current.holder.order_id)
-            .eq('status', 'holding');
-        }
-        const { error: stateError } = await state()
-          .update({
-            order_id: input.order_id,
-            url: input.url,
-            domain: input.domain,
-            price_cents: input.price_cents,
-            score: input.score,
-            tier: input.tier,
-            roast: input.roast,
-            held_since: now.toISOString(),
-            expires_at: expiresAt,
-            updated_at: now.toISOString(),
-          })
-          .eq('id', 1);
-        if (stateError) throw stateError;
-        return 'installed';
+        return data;
       }),
 
     vacateOnRefund: (orderId: string) =>
