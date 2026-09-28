@@ -47,6 +47,18 @@ import {
   supabaseFeaturedStore,
   type PriorityScanResult,
 } from '../lib/featured';
+import {
+  supabaseThroneStore,
+  applyThroneOrderPaid,
+  applyThroneOrderRefunded,
+  formatCents,
+  THRONE_FLOOR_CENTS,
+} from '../lib/throne';
+import {
+  createThroneCheckout,
+  PolarNotConfiguredError,
+  PolarCheckoutError,
+} from '../lib/polarCheckout';
 
 /**
  * VaporRank routes (§2.11).
@@ -776,11 +788,29 @@ vaporRouter.post(
     }
 
     try {
-      const store = supabaseFeaturedStore();
-      const outcome =
-        parsed.type === 'order.paid'
-          ? await applyPolarOrderPaid(parsed, { store, scan: runPriorityScan })
-          : await applyPolarOrderRefunded(parsed.orderId, { store });
+      const order = parsed.order;
+      const md = order.metadata;
+      const isThroneBid =
+        typeof md === 'object' &&
+        md !== null &&
+        (md as Record<string, unknown>).throne_bid === 'true';
+      let outcome;
+      if (isThroneBid) {
+        // Phase B7: the throne auction. A paid bid takes the throne
+        // immediately (dethroning the holder); a refund vacates it.
+        const store = supabaseThroneStore();
+        outcome =
+          parsed.type === 'order.paid'
+            ? await applyThroneOrderPaid(parsed, { store, scan: runPriorityScan })
+            : await applyThroneOrderRefunded(parsed.orderId, { store });
+      } else {
+        // Legacy fixed-price Featured Roast checkout link (Phase A).
+        const store = supabaseFeaturedStore();
+        outcome =
+          parsed.type === 'order.paid'
+            ? await applyPolarOrderPaid(parsed, { store, scan: runPriorityScan })
+            : await applyPolarOrderRefunded(parsed.orderId, { store });
+      }
       console.log(`[polar] webhook ${parsed.type} ${parsed.orderId} →`, outcome);
       if (!outcome.handled && 'retryable' in outcome && outcome.retryable) {
         // 500 — Polar redelivers; idempotency makes that safe.
@@ -795,24 +825,119 @@ vaporRouter.post(
 );
 
 /**
- * GET /api/vapor/featured — the currently pinned Sponsored Champion, if
- * any. Public, no auth. Only `active` rows whose 7-day window hasn't
- * lapsed are ever returned (the refund/expire filter lives here, not in
- * the frontend — A4 renders whatever this returns).
+ * GET /api/vapor/throne — the current throne state. Public, no auth.
+ * The auction's single source of truth: who holds it, what they paid,
+ * and the minimum the next bid must be ($19 floor, +$3 per steal).
+ */
+vaporRouter.get('/throne', async (_req, res) => {
+  try {
+    const status = await supabaseThroneStore().getStatus();
+    const h = status.holder;
+    return res.json({
+      occupied: status.occupied,
+      floor_cents: status.floor_cents,
+      increment_cents: status.increment_cents,
+      min_bid_cents: status.min_bid_cents,
+      holder: h
+        ? {
+            domain: h.domain,
+            url: h.url,
+            price_cents: h.price_cents,
+            score: h.score,
+            tier: h.tier,
+            verdict:
+              typeof h.roast === 'object' && h.roast !== null
+                ? (h.roast as { verdict?: unknown }).verdict ?? null
+                : null,
+            held_since: h.held_since,
+            expires_at: h.expires_at,
+          }
+        : null,
+    });
+  } catch (err) {
+    console.error('[throne] status lookup failed', err);
+    return res.status(500).json({ error: 'store_unavailable' });
+  }
+});
+
+/**
+ * POST /api/vapor/throne/checkout — start a throne bid.
+ * Body: { url }. Validates the URL (same syntactic rules as the scan
+ * box — SSRF safety lives in fetchPage), quotes the current minimum bid,
+ * and creates one Polar checkout session with an ad-hoc fixed price.
+ * The buyer pays on Polar's hosted page; fulfillment is webhook-driven
+ * (order.paid → applyThroneOrderPaid). 503 when Polar isn't wired up —
+ * Joshua's step (POLAR_ACCESS_TOKEN + POLAR_THRONE_PRODUCT_ID on Render).
+ */
+vaporRouter.post(
+  '/throne/checkout',
+  rateLimit('throne-checkout', 10, 60_000),
+  async (req, res) => {
+    const raw = (req.body as { url?: unknown } | undefined)?.url;
+    if (typeof raw !== 'string' || raw.trim().length === 0) {
+      return res
+        .status(400)
+        .json({ error: 'missing_url', detail: 'Tell us which site wants the throne.' });
+    }
+    let candidate = raw.trim();
+    if (candidate.length > MAX_URL_LENGTH) {
+      return res.status(400).json({ error: 'invalid_url' });
+    }
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(candidate)) candidate = `https://${candidate}`;
+    let parsed: URL;
+    try {
+      parsed = new URL(candidate);
+    } catch {
+      return res.status(400).json({ error: 'invalid_url' });
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return res.status(400).json({ error: 'invalid_url' });
+    }
+    const url = parsed.toString();
+
+    let minBid: number;
+    try {
+      minBid = (await supabaseThroneStore().getStatus()).min_bid_cents;
+    } catch (err) {
+      console.error('[throne] status lookup failed', err);
+      return res.status(500).json({ error: 'store_unavailable' });
+    }
+    try {
+      const session = await createThroneCheckout(url, minBid);
+      return res.json(session);
+    } catch (err) {
+      if (err instanceof PolarNotConfiguredError) {
+        return res.status(503).json({
+          error: 'throne_not_configured',
+          detail: 'Throne bidding is being set up — try again soon.',
+        });
+      }
+      console.error('[throne] checkout creation failed', err);
+      const status = err instanceof PolarCheckoutError && err.status === 0 ? 502 : 502;
+      return res.status(status).json({ error: 'checkout_failed' });
+    }
+  },
+);
+
+/**
+ * GET /api/vapor/featured — legacy Phase A endpoint, now reads the throne.
+ * The pinned spotlight IS the throne holder; kept so nothing that cached
+ * the old shape breaks during the transition.
  */
 vaporRouter.get('/featured', async (_req, res) => {
   try {
-    const row = await supabaseFeaturedStore().getActive();
-    if (!row) return res.json({ featured: null });
+    const status = await supabaseThroneStore().getStatus();
+    const h = status.holder;
+    if (!h) return res.json({ featured: null });
     return res.json({
       featured: {
-        url: row.url,
-        slug: row.slug,
-        score: row.score,
-        tier: row.tier,
-        roast: row.roast,
-        paid_at: row.paid_at,
-        expires_at: row.expires_at,
+        url: h.url,
+        slug: h.domain,
+        score: h.score,
+        tier: h.tier,
+        roast: h.roast,
+        paid_at: h.held_since,
+        expires_at: h.expires_at,
       },
     });
   } catch (err) {

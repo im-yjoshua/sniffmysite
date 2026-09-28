@@ -11,7 +11,7 @@ import { CATEGORIES, categoryFor, type CategoryKey } from '../lib/categories';
 import { TierMark } from '../components/seals/TierMark';
 import { SiteLogo } from '../components/SiteLogo';
 import { JudgingCriteria } from '../components/JudgingCriteria';
-import { SponsoredChampionCard } from '../components/SponsoredChampionCard';
+import { ThroneCard } from '../components/ThroneCard';
 import { LionsDen } from '../components/LionsDen';
 import { SandsRisers } from '../components/SandsRisers';
 import { WeekGames } from '../components/WeekGames';
@@ -144,7 +144,7 @@ export function LeaderboardPage() {
       </p>
 
       {/* The paid pin above the board (Phase A). */}
-      <SponsoredChampionCard />
+      <ThroneCard />
 
       {/* This Week's Games: the weekly superlatives, awarded by the numbers. */}
       <WeekGames entries={entries} />

@@ -122,10 +122,18 @@ const MAX_URL_LENGTH = 2048;
  */
 export function extractWebsiteUrl(order: Record<string, unknown>): WebsiteUrlResult {
   const cfd = order.custom_field_data;
-  const raw =
+  const fromField =
     typeof cfd === 'object' && cfd !== null
       ? (cfd as Record<string, unknown>)['website-url']
       : undefined;
+  // API-created sessions (Phase B7 throne bids) carry the URL in metadata
+  // instead — the buyer typed it in our form before the session existed.
+  const md = order.metadata;
+  const fromMetadata =
+    typeof md === 'object' && md !== null
+      ? (md as Record<string, unknown>).website_url
+      : undefined;
+  const raw = fromField ?? fromMetadata;
   if (typeof raw !== 'string' || raw.trim().length === 0) {
     return { ok: false, reason: 'missing_url' };
   }

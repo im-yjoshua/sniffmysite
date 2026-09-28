@@ -136,6 +136,66 @@ export async function fetchFeatured(): Promise<FeaturedRoast | null> {
   return data.featured;
 }
 
+/* ---- The Throne (Phase B7: auction) ---- */
+
+export interface ThroneHolder {
+  domain: string;
+  url: string;
+  price_cents: number;
+  score: number | null;
+  tier: string | null;
+  verdict: string | null;
+  held_since: string;
+  expires_at: string;
+}
+
+export interface ThroneState {
+  occupied: boolean;
+  floor_cents: number;
+  increment_cents: number;
+  min_bid_cents: number;
+  holder: ThroneHolder | null;
+}
+
+/** GET the current throne state. Throws ScanApiError on HTTP errors. */
+export async function fetchThrone(): Promise<ThroneState> {
+  return requestJson<ThroneState>('/api/vapor/throne');
+}
+
+export interface ThroneCheckoutSession {
+  checkout_url: string;
+  checkout_id: string;
+  price_cents: number;
+}
+
+/**
+ * POST a throne bid: validates the URL server-side, quotes the current
+ * minimum bid, and creates one Polar ad-hoc-price checkout session.
+ * Resolves with the Polar URL to redirect the buyer to. Throws
+ * ScanApiError — message 'throne_not_configured' when the server isn't
+ * wired for Polar yet (503).
+ */
+export async function createThroneCheckout(
+  url: string,
+): Promise<ThroneCheckoutSession> {
+  const res = await fetch(`${API_URL}/api/vapor/throne/checkout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) {
+    let code = 'checkout_failed';
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (body.error) code = body.error;
+    } catch {
+      /* fall through with the generic code */
+    }
+    throw new ScanApiError(res.status, code);
+  }
+  return (await res.json()) as ThroneCheckoutSession;
+}
+
 export interface ApiHistoryEntry {
   algo_version: string;
   /** Internal vapor measurement (higher = more hype) — never displayed. */

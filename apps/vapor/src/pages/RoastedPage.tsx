@@ -24,8 +24,8 @@ const NEXT = [
   },
   {
     n: 'III',
-    title: 'Pinned above the standings.',
-    body: 'Your page holds the top of the board for 7 days \u2014 labeled as paid.',
+    title: 'The throne is yours — for now.',
+    body: 'Your roast takes the throne for up to 3 days \u2014 labeled as paid, until someone outbids you by $3.',
   },
 ];
 

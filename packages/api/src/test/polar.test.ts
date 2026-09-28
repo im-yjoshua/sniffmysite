@@ -148,6 +148,19 @@ describe('extractWebsiteUrl', () => {
     assert.deepEqual(r, { ok: true, url: 'https://acme.com/' });
   });
 
+  it('falls back to metadata.website_url for API-created sessions (throne bids)', () => {
+    const r = extractWebsiteUrl({ metadata: { website_url: 'bidder.com' } });
+    assert.deepEqual(r, { ok: true, url: 'https://bidder.com/' });
+  });
+
+  it('prefers the custom field over metadata', () => {
+    const r = extractWebsiteUrl({
+      custom_field_data: { 'website-url': 'field.com' },
+      metadata: { website_url: 'meta.com' },
+    });
+    assert.deepEqual(r, { ok: true, url: 'https://field.com/' });
+  });
+
   it('keeps an explicit scheme', () => {
     const r = extractWebsiteUrl({
       custom_field_data: { 'website-url': 'http://example.com/page' },
