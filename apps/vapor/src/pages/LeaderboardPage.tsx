@@ -9,6 +9,7 @@ import {
 } from '../lib/api';
 import { CATEGORIES, categoryFor, type CategoryKey } from '../lib/categories';
 import { TierMark } from '../components/seals/TierMark';
+import { MoveBadge } from '../components/MoveBadge';
 import { SiteLogo } from '../components/SiteLogo';
 import { JudgingCriteria } from '../components/JudgingCriteria';
 import { ThroneCard } from '../components/ThroneCard';
@@ -295,15 +296,10 @@ export function LeaderboardPage() {
                       {e.sniff_score}
                     </span>
 
-                    {e.delta !== null && (
-                      <span
-                        className="hidden w-16 shrink-0 text-right font-data text-base font-bold tabular-nums text-ink sm:block"
-                        title={`Score change since the first sniff: ${e.delta > 0 ? '+' : ''}${e.delta}`}
-                      >
-                        Δ{e.delta > 0 ? '+' : ''}
-                        {e.delta}
-                      </span>
-                    )}
+                    <MoveBadge
+                      delta={e.delta}
+                      className="w-12 shrink-0 text-right text-base"
+                    />
 
                     <span className="hidden w-60 shrink-0 items-center justify-end gap-3 md:flex">
                       <TierMark tier={e.tier} size={44} />

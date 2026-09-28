@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { TierMark } from './seals/TierMark';
+import { MoveBadge } from './MoveBadge';
 import { SiteLogo } from './SiteLogo';
 import type { ApiLeaderboardEntry } from '../lib/api';
 
@@ -89,6 +90,10 @@ export function LionsDen({ entries }: { entries: ApiLeaderboardEntry[] | null })
                 <span className="w-16 shrink-0 text-right font-data text-2xl font-bold tabular-nums text-hazard">
                   {e.sniff_score}
                 </span>
+                <MoveBadge
+                  delta={e.delta}
+                  className="w-12 shrink-0 text-right text-sm"
+                />
                 <span className="hidden w-60 shrink-0 items-center justify-end gap-3 md:flex">
                   <TierMark tier={e.tier} size={44} />
                   <span className="font-data text-sm uppercase tracking-[0.14em] text-ink-soft">

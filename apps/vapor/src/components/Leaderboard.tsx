@@ -7,6 +7,7 @@ import {
   type ApiLeaderboardEntry,
 } from '../lib/api';
 import { TierMark } from './seals/TierMark';
+import { MoveBadge } from './MoveBadge';
 import { SiteLogo } from './SiteLogo';
 
 interface LeaderboardProps {
@@ -116,6 +117,11 @@ export function Leaderboard({ onSniffAgain, variant = 'real' }: LeaderboardProps
                 <span className="w-14 shrink-0 text-right font-data text-xl font-bold tabular-nums text-hazard">
                   {s.sniff_score}
                 </span>
+
+                <MoveBadge
+                  delta={s.delta}
+                  className="w-12 shrink-0 text-right text-sm"
+                />
 
                 <span className="hidden w-12 shrink-0 justify-end md:flex">
                   <TierMark tier={s.tier} size={40} />

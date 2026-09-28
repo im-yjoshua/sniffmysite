@@ -32,6 +32,10 @@
   /* Roman red — condemned states, the Lions' Den. Pompeian red family. */
   --color-roman-red: #a63d2f;
 
+  /* Rise green — upward score movement ONLY (the ▲ ticker). Downward moves
+     reuse roman-red. Never for CTAs, seals, or anything else. */
+  --color-rise: #2e7d46;
+
   /* Tier seal colors — the SVG seals read these, so they remap with
      the theme instead of glowing wrong on dark parchment. */
   --color-seal-laureate: #b98a1d; /* LAUREATE — gold, the prize */
@@ -75,6 +79,8 @@
   --color-gold: #d9a93c; /* the prize — still reads on dark, gold spot only */
 
   --color-roman-red: #c65a44; /* condemned states, brightened for dark */
+
+  --color-rise: #5cc47a; /* upward score movement — reads on dark paper */
 
   --color-hairline: #2e2a23; /* 1px rules, visible but quiet on dark */
 
