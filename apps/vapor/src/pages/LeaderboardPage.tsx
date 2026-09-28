@@ -12,11 +12,18 @@ import { TierMark } from '../components/seals/TierMark';
 import { SiteLogo } from '../components/SiteLogo';
 import { JudgingCriteria } from '../components/JudgingCriteria';
 import { SponsoredChampionCard } from '../components/SponsoredChampionCard';
+import { LionsDen } from '../components/LionsDen';
+import { SandsRisers } from '../components/SandsRisers';
+import { WeekGames } from '../components/WeekGames';
+import { Ticker } from '../components/Ticker';
 
 const TABS: Array<{ key: LeaderboardSort; label: string }> = [
   { key: 'real', label: 'Most Real' },
   { key: 'vapor', label: 'Most Vapor' },
-  { key: 'improved', label: 'Rise from the Sands' },
+  // "Rise from the Sands" is the weekly comebacks section below — the
+  // all-time board tab is "Most Improved" so the page never says the
+  // same name twice for two different things.
+  { key: 'improved', label: 'Most Improved' },
 ];
 
 /** The board quietly re-checks for new scans on this interval (15–30s spec). */
@@ -26,7 +33,7 @@ const POLL_MS = 20_000;
 const TAB_SUBLINES: Record<LeaderboardSort, string> = {
   real: 'The honored — highest Sniff Score first. #1 takes the laurel. Every founder wants this spot.',
   vapor: 'The doomed — most vapor first. #1 is the vaporest page we\u2019ve ever tested. Say cheese.',
-  improved: 'Rise from the Sands — pages that fixed their copy and re-tested. Ranked by biggest climb.',
+  improved: 'Most Improved — pages that fixed their copy and re-tested. Ranked by biggest climb.',
 };
 
 /**
@@ -138,6 +145,9 @@ export function LeaderboardPage() {
 
       {/* The paid pin above the board (Phase A). */}
       <SponsoredChampionCard />
+
+      {/* This Week's Games: the weekly superlatives, awarded by the numbers. */}
+      <WeekGames entries={entries} />
 
       {/* Category pills — actually filters the board. */}
       <div
@@ -319,6 +329,27 @@ export function LeaderboardPage() {
             ))}
           </ol>
         )}
+
+      {/* The Lions' Den: the week's five lowest scores. */}
+      <LionsDen entries={entries} />
+
+      {/* Rise from the Sands: the week's biggest comebacks. */}
+      <SandsRisers />
+
+      {/* Live judgments feed — the same ticker the home page runs. */}
+      <section aria-label="Live judgments" className="mt-16">
+        <p className="eyebrow text-ink-faint">As it happens</p>
+        <h2 className="mt-3 font-inscription text-3xl font-bold uppercase tracking-tight md:text-4xl">
+          Live from the arena
+        </h2>
+        <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-soft">
+          Every finished test lands here first — the newest judgments,
+          fresh off the nose.
+        </p>
+        <div className="mt-6">
+          <Ticker />
+        </div>
+      </section>
 
       <div className="mt-16">
         <JudgingCriteria />

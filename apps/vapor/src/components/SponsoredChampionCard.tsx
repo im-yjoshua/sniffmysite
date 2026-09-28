@@ -116,12 +116,20 @@ function ChampionBody({ featured }: { featured: FeaturedRoast }) {
         the score was earned in the open, like everyone else&rsquo;s.
       </p>
 
-      <Link
-        to="/pricing"
-        className="tap-target mt-5 inline-flex items-center font-data text-sm font-bold uppercase tracking-[0.18em] text-hazard hover:underline"
-      >
-        Your site here &mdash; $19
-      </Link>
+      <div className="mt-5 flex flex-wrap items-center gap-x-8 gap-y-3">
+        <Link
+          to={`/scan?url=${encodeURIComponent(featured.url)}`}
+          className="tap-target inline-flex items-center font-data text-sm font-bold uppercase tracking-[0.18em] text-ink hover:text-hazard hover:underline"
+        >
+          Read the full roast
+        </Link>
+        <Link
+          to="/pricing"
+          className="tap-target inline-flex items-center font-data text-sm font-bold uppercase tracking-[0.18em] text-hazard hover:underline"
+        >
+          Your site here &mdash; $19
+        </Link>
+      </div>
     </div>
   );
 }
