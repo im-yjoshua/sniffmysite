@@ -7,6 +7,7 @@ import { ScanBox } from './components/ScanBox';
 import { Leaderboard } from './components/Leaderboard';
 import { TrendingBoard } from './components/TrendingBoard';
 import { MeanderDivider } from './components/seals/MeanderDivider';
+import { RomeBackdrop } from './components/RomeBackdrop';
 import { Reveal } from './components/Reveal';
 import { ScanPage } from './pages/ScanPage';
 import { ComparePage } from './pages/ComparePage';
@@ -28,7 +29,8 @@ import { fetchSponsors, type PublicSponsor } from './lib/api';
  */
 export function App() {
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="relative min-h-screen bg-paper text-ink">
+      <RomeBackdrop />
       <ScrollManager />
       <Navbar />
 
