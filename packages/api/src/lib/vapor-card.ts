@@ -11,7 +11,7 @@
  * lib/report-card.ts: no Chromium on the Render free tier, and resvg loads
  * our bundled TTFs explicitly so the card looks identical everywhere.
  *
- * Design: the Inspection Lab voice. Paper background, hairline rules, giant
+ * Design: the arena voice. Paper background, hairline rules, giant
  * score, the rosette seal, one deadpan field note. No gradients, no stock
  * imagery, no emoji — §0.4. No VAPORRANK anywhere; this is SniffMySite.
  *
@@ -148,7 +148,7 @@ export function rosetteBadgeSVG(
 }
 
 // ---------------------------------------------------------------------------
-// Palette — The Inspection Lab (§2.7)
+// Palette — The Arena (§2.7)
 // ---------------------------------------------------------------------------
 export const VPAL = {
   paper: '#F6F1E7',
@@ -161,7 +161,7 @@ export const VPAL = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Deterministic evidence joke — field notes from the inspection lab
+// Deterministic evidence joke — field notes from the arena floor
 // ---------------------------------------------------------------------------
 
 export interface JokeInput {
@@ -248,11 +248,11 @@ export function buildVaporCardSVG(input: VaporCardInput): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_W}" height="${CARD_H}" viewBox="0 0 ${CARD_W} ${CARD_H}">
 <rect width="${CARD_W}" height="${CARD_H}" fill="${VPAL.paper}"/>
 <rect x="0" y="0" width="${CARD_W}" height="12" fill="${VPAL.ink}"/>
-<!-- header: monogram + SniffMySite + inspection lab -->
+<!-- header: monogram + SniffMySite + the arena -->
 <circle cx="${innerX}" cy="86" r="34" fill="${VPAL.ink}"/>
 <text x="${innerX}" y="99" text-anchor="middle" font-family="${sans}" font-weight="700" font-size="30" fill="${VPAL.paper}">S</text>
 <text x="${innerX + 50}" y="80" font-family="${sans}" font-weight="700" font-size="30" letter-spacing="3" fill="${VPAL.ink}">SNIFFMYSITE</text>
-<text x="${innerX + 50}" y="106" font-family="${mono}" font-size="16" letter-spacing="4" fill="${VPAL.faint}">INSPECTION LAB</text>
+<text x="${innerX + 50}" y="106" font-family="${mono}" font-size="16" letter-spacing="4" fill="${VPAL.faint}">THE ARENA</text>
 <text x="${CARD_W - innerX}" y="80" text-anchor="end" font-family="${mono}" font-size="16" letter-spacing="2" fill="${VPAL.faint}">SNIFF REPORT ${reportNumber(input.slug)}</text>
 <text x="${CARD_W - innerX}" y="106" text-anchor="end" font-family="${mono}" font-size="16" fill="${VPAL.faint}">${escapeXml(input.domain)}</text>
 <line x1="${innerX - 24}" y1="146" x2="${CARD_W - innerX + 24}" y2="146" stroke="${VPAL.hairline}" stroke-width="2"/>

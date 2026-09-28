@@ -198,7 +198,7 @@ describe('buildVaporCardSVG', () => {
   it('carries SniffMySite branding and the canonical URL', () => {
     const svg = buildVaporCardSVG(CARD_INPUT);
     assert.ok(svg.includes('SNIFFMYSITE'), 'brand');
-    assert.ok(svg.includes('INSPECTION LAB'), 'lab branding');
+    assert.ok(svg.includes('THE ARENA'), 'arena branding');
     assert.ok(svg.includes('https://sniffmysite.lol/s/hype.ai'), 'canonical share URL');
     assert.ok(svg.includes('we joke about the page, never the people.'), 'footer sign-off');
   });
