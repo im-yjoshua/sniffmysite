@@ -383,6 +383,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .marquee-track,
   .animate-stamp-in,
+  .seal-stamp,
+  .verdict-rise,
   .animate-spin,
   .animate-pulse,
   .row-in,

@@ -1,30 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check, Copy, RotateCcw, Swords } from 'lucide-react';
+import { VSMedallion } from '../components/seals/VSMedallion';
 import { TierMark } from '../components/seals/TierMark';
+import { BattleTape } from '../components/BattleTape';
+import { DuelVerdict } from '../components/DuelVerdict';
 import { useCountUp } from '../hooks/useCountUp';
 import { buildSniffOffChallenge } from '../lib/share';
 import {
   scanUrl,
   ScanApiError,
-  METRIC_META,
   type ApiScanResult,
-  type MetricScores,
 } from '../lib/api';
 import { toLabError, hostnameOf, type LabError } from './ScanPage';
 
 /**
- * The battle: two pages, one nose. Route `/battle`.
+ * The Duel: two pages enter, the score decides. Route `/battle`.
  * Runs two real POST /api/vapor/scan tests side by side — each counts
  * against the normal 30/hr scan budget (the UI says so honestly).
  *
  * The two sides are fully independent: per-side loading/error/result, so
- * one slow or broken scan never blocks the other. Verdicts compare the
- * six smell-check metrics both scans return and surface the 2–3 biggest
- * gaps.
+ * one slow or broken scan never blocks the other. When both land, the
+ * thumb falls — VICTOR (laurel) vs CONDEMNED (thumb-down) — over the
+ * tale of the tape (all six checks, side by side), with an auto
+ * "X DESTROYED Y" share card and a rematch button.
  *
- * Challenge links: /compare?a=stripe.com&b=lemonsqueezy.com pre-fills
- * both inputs and auto-runs the battle when both are valid and
+ * Challenge links: /battle?a=stripe.com&b=lemonsqueezy.com pre-fills
+ * both inputs and auto-runs the duel when both are valid and
  * different. Invalid params show the normal form with a friendly error —
  * never a wasted scan. Once both sides land, a challenge block offers
  * pre-written X/LinkedIn posts plus a copy-link button that replays the
@@ -56,6 +58,13 @@ function canonical(raw: string): string {
   s = s.replace(/^https?:\/\//, '').replace(/^www\./, '');
   s = s.split(/[?#]/)[0].replace(/\/+$/, '');
   return s;
+}
+
+/** Who takes it. Higher sniff score = more real = wins; null on a tie. */
+function duelWinner(a: ApiScanResult, b: ApiScanResult): SideKey | null {
+  if (a.sniff_score > b.sniff_score) return 'a';
+  if (b.sniff_score > a.sniff_score) return 'b';
+  return null;
 }
 
 /** Budget honesty for a battle side that hit the scan-budget wall. */
@@ -161,20 +170,32 @@ export function ComparePage() {
     runSide('b', fullB);
   };
 
+  /** Rematch: same contenders, fresh judgment. Costs two fresh tests. */
+  const rematch = () => {
+    if (!urlA.trim() || !urlB.trim()) return;
+    setFormError('');
+    runSide('a', withScheme(urlA));
+    runSide('b', withScheme(urlB));
+    document
+      .getElementById('battle-sides')
+      ?.scrollIntoView({ block: 'start' });
+  };
+
   const bothDone =
     sideA.phase === 'done' && sideB.phase === 'done';
 
-  const verdict = bothDone
-    ? scoreDiffVerdict(sideA.result, sideB.result)
-    : null;
+  const winner = bothDone ? duelWinner(sideA.result, sideB.result) : null;
 
   return (
     <main className="mx-auto max-w-6xl px-6 pb-16 pt-10 md:pt-14">
-      <div className="border-b-2 border-ink pb-4">
+      <div className="border-b-2 border-ink pb-6">
         <p className="eyebrow text-ink-soft">Head to head</p>
-        <h1 className="mt-3 font-inscription text-5xl font-bold uppercase tracking-tight md:text-6xl">
-          The Battle<span className="text-hazard">.</span>
-        </h1>
+        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-4">
+          <h1 className="font-inscription text-5xl font-bold uppercase tracking-tight md:text-6xl">
+            The Duel<span className="text-hazard">.</span>
+          </h1>
+          <VSMedallion size={88} className="text-hazard" title="Two pages enter — the score decides" />
+        </div>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
           Two pages enter. The score decides — no votes, no judges, no
           mercy. Each side gets a full test, run side by side.
@@ -245,17 +266,9 @@ export function ComparePage() {
         </div>
       </form>
 
-      {/* The verdict, once both tests land. */}
-      {verdict && (
-        <section className="mt-12 border-y-2 border-ink py-10" aria-live="polite">
-          <p className="eyebrow text-ink-faint">The decision</p>
-          <h2 className="mt-3 max-w-3xl font-inscription text-3xl font-bold uppercase leading-snug tracking-tight md:text-5xl">
-            {verdict.headline}
-          </h2>
-          <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-soft">
-            {verdict.subline}
-          </p>
-        </section>
+      {/* The verdict, once both tests land: the thumb has fallen. */}
+      {bothDone && (
+        <DuelVerdict a={sideA.result} b={sideB.result} onRematch={rematch} />
       )}
 
       {/* The gauntlet — challenge the loser to a rematch, publicly. */}
@@ -264,23 +277,21 @@ export function ComparePage() {
       )}
 
       {/* The two sides: loading → error → result, independently. */}
-      <div className="mt-10 grid gap-8 md:grid-cols-2">
+      <div id="battle-sides" className="mt-10 grid scroll-mt-24 gap-8 md:grid-cols-2">
         <SideCard
           key="a"
           label="Contender one"
           url={urlA}
           state={sideA}
           onRetry={() => runSideAgain('a')}
-          winner={verdict?.winner}
+          winner={winner}
           sideKey="a"
         />
-        {/* On phones the sides stack — this divider is the ring bell
+        {/* On phones the sides stack — the medallion is the ring bell
             between them. Side by side on tablet/desktop it hides. */}
         <div className="flex items-center gap-4 md:hidden" aria-hidden="true">
           <span className="h-px flex-1 bg-hairline" />
-          <span className="font-data text-sm font-bold uppercase tracking-[0.18em] text-hazard">
-            VS
-          </span>
+          <VSMedallion size={56} className="text-hazard" />
           <span className="h-px flex-1 bg-hairline" />
         </div>
         <SideCard
@@ -289,13 +300,13 @@ export function ComparePage() {
           url={urlB}
           state={sideB}
           onRetry={() => runSideAgain('b')}
-          winner={verdict?.winner}
+          winner={winner}
           sideKey="b"
         />
       </div>
 
-      {/* Where they differ most — derived from the six smell checks. */}
-      {bothDone && <MetricDiffs a={sideA.result} b={sideB.result} />}
+      {/* Tale of the tape — all six checks, side by side. */}
+      {bothDone && <BattleTape a={sideA.result} b={sideB.result} />}
 
       <Link
         to="/"
@@ -306,38 +317,6 @@ export function ComparePage() {
       </Link>
     </main>
   );
-}
-
-interface Verdict {
-  headline: string;
-  subline: string;
-  /** 'a' | 'b' | null for a tie. */
-  winner: SideKey | null;
-}
-
-/** Who takes it, in the lab's voice. Score: higher = more real. */
-function scoreDiffVerdict(a: ApiScanResult, b: ApiScanResult): Verdict {
-  const hostA = hostnameOf(a.url);
-  const hostB = hostnameOf(b.url);
-  if (a.sniff_score > b.sniff_score) {
-    return {
-      headline: `${hostA} wins the battle.`,
-      subline: `${a.sniff_score} to ${b.sniff_score}. ${hostB}'s page had more to hide — the nose noticed.`,
-      winner: 'a',
-    };
-  }
-  if (b.sniff_score > a.sniff_score) {
-    return {
-      headline: `${hostB} wins the battle.`,
-      subline: `${b.sniff_score} to ${a.sniff_score}. ${hostA}'s page had more to hide — the nose noticed.`,
-      winner: 'b',
-    };
-  }
-  return {
-    headline: 'A dead tie. The nose shrugs.',
-    subline: `Both pages scored ${a.sniff_score}. Come back with two pages that aren't equally suspicious.`,
-    winner: null,
-  };
 }
 
 /**
@@ -450,7 +429,7 @@ function SideCard({
   url: string;
   state: SideState;
   onRetry: () => void;
-  winner: SideKey | null | undefined;
+  winner: SideKey | null;
   sideKey: SideKey;
 }) {
   const done = state.phase === 'done';
@@ -541,75 +520,6 @@ function SideCard({
           >
             Full report →
           </Link>
-        </div>
-      )}
-    </section>
-  );
-}
-
-interface MetricDiff {
-  key: keyof MetricScores;
-  label: string;
-  a: number;
-  b: number;
-  diff: number;
-}
-
-/**
- * The 2–3 biggest evidence gaps: compare each smell check's two scores,
- * rank by absolute gap. On every check a higher number means more
- * suspicious — so the gap's owner is named as the smellier one.
- */
-function topMetricDiffs(a: ApiScanResult, b: ApiScanResult): MetricDiff[] {
-  return METRIC_META.map((m) => {
-    const av = a.metrics[m.key];
-    const bv = b.metrics[m.key];
-    return { key: m.key, label: m.label, a: av, b: bv, diff: Math.abs(av - bv) };
-  })
-    .filter((d) => d.diff > 0)
-    .sort((x, y) => y.diff - x.diff)
-    .slice(0, 3);
-}
-
-function MetricDiffs({ a, b }: { a: ApiScanResult; b: ApiScanResult }) {
-  const hostA = hostnameOf(a.url);
-  const hostB = hostnameOf(b.url);
-  const diffs = topMetricDiffs(a, b);
-
-  return (
-    <section className="mt-12 border-t border-hairline pt-8" aria-label="Where they differ most">
-      <p className="eyebrow text-ink-faint">Where they differ most</p>
-      <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-soft">
-        The six smell checks, side by side. On every check, a higher number
-        means more suspicious.
-      </p>
-      {diffs.length === 0 ? (
-        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-soft">
-          Nothing — these two pages smell identical on all six checks. Spooky.
-        </p>
-      ) : (
-        <div className="mt-6 space-y-0">
-          {diffs.map((d) => {
-            const smellier = d.a > d.b ? hostA : hostB;
-            return (
-              <div
-                key={d.key}
-                className="grid min-w-0 gap-2 border-t border-hairline py-5 sm:grid-cols-[1fr_auto] sm:items-baseline sm:gap-6"
-              >
-                <div className="min-w-0">
-                  <p className="text-lg font-bold tracking-tight">
-                    {d.label}
-                  </p>
-                  <p className="mt-1 break-all font-data text-sm text-ink-soft">
-                    {hostA} {d.a} · {hostB} {d.b}
-                  </p>
-                </div>
-                <p className="break-all font-data text-sm font-bold uppercase tracking-[0.14em] text-hazard">
-                  {smellier} smells worse here
-                </p>
-              </div>
-            );
-          })}
         </div>
       )}
     </section>

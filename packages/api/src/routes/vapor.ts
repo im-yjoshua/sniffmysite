@@ -4,7 +4,7 @@ import { scorePage, sniffScoreFor, ALGO_VERSION } from '../lib/score';
 import { type LeaderboardSort } from '../lib/seed';
 import { recordBoardScan, getBoard } from '../lib/scanlog';
 import { normalizeSlug, getProfile } from '../lib/profile';
-import { getVaporCardPNG, vaporCardCacheKey } from '../lib/vapor-card';
+import { getVaporCardPNG, vaporCardCacheKey, getBattleCardPNG, battleOutcome } from '../lib/vapor-card';
 import { resolveBadge } from '../lib/badge';
 import {
   createClaim,
@@ -517,6 +517,85 @@ vaporRouter.post('/card', rateLimit('vapor-card', 60, 3_600_000), async (req, re
   setShareCardHeaders(res, etag, 3600);
   return res.send(png);
 });
+
+/**
+ * POST /api/vapor/card/battle — render the "X DESTROYED Y" share card for a
+ * finished battle. The /battle page POSTs both finished scan results here
+ * and gets a 1200×630 PNG for the share popup. No outbound fetch — just
+ * CPU — so the limit is generous. Cached in memory keyed by the card's
+ * content hash. Winner rule (higher sniff score wins) matches the page.
+ */
+function isBattleScore(v: unknown): v is number {
+  return (
+    typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 100
+  );
+}
+
+vaporRouter.post(
+  '/card/battle',
+  rateLimit('vapor-card-battle', 60, 3_600_000),
+  async (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const slugA = normalizeSlug(body.domain_a);
+    const slugB = normalizeSlug(body.domain_b);
+    const tierA = body.tier_a;
+    const tierB = body.tier_b;
+    if (
+      !slugA ||
+      !slugB ||
+      !isBattleScore(body.sniff_score_a) ||
+      !isBattleScore(body.sniff_score_b) ||
+      typeof tierA !== 'string' ||
+      !(TIERS as readonly string[]).includes(tierA) ||
+      typeof tierB !== 'string' ||
+      !(TIERS as readonly string[]).includes(tierB)
+    ) {
+      return res.status(400).json({
+        error: 'invalid_battle_card',
+        detail:
+          'Need two domains, two 0–100 sniff scores, and two tiers.',
+      });
+    }
+
+    const siteUrl = (
+      process.env.PUBLIC_SITE_URL ?? 'https://sniffmysite.lol'
+    ).replace(/\/+$/, '');
+    const input = {
+      slugA,
+      domainA: slugA,
+      sniff_score_a: body.sniff_score_a as number,
+      tier_a: tierA as (typeof TIERS)[number],
+      slugB,
+      domainB: slugB,
+      sniff_score_b: body.sniff_score_b as number,
+      tier_b: tierB as (typeof TIERS)[number],
+      siteUrl,
+    };
+    // Sanity: the route never disagrees with the card about who won.
+    void battleOutcome(input);
+    const key = vaporCardCacheKey(`battle:${slugA}:vs:${slugB}`, {
+      ...input,
+    });
+    const etag = `"${key}"`;
+    if (req.headers['if-none-match'] === etag) {
+      return res.status(304).end();
+    }
+
+    let png: Buffer;
+    try {
+      png = await getBattleCardPNG(key, input);
+    } catch (err) {
+      console.error('[api] battle card render failed:', (err as Error).message);
+      return res.status(500).json({
+        error: 'render_failed',
+        message: 'The printer jammed. Try again.',
+      });
+    }
+
+    setShareCardHeaders(res, etag, 3600);
+    return res.send(png);
+  },
+);
 
 /**
  * POST /api/vapor/claim — issue a DNS TXT verification token (Task 8, §2.11).

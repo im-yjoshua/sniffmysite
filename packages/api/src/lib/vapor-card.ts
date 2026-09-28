@@ -364,3 +364,154 @@ export function _testClearCache(): void {
 export function _testCacheSize(): number {
   return cache.size;
 }
+
+// ---------------------------------------------------------------------------
+// Battle card (1200×630) — B1 "X DESTROYED Y" share cards.
+// Same SVG → resvg pipeline, same bundled fonts, same arena rules:
+// no gradients, no stock imagery, no emoji, paper background.
+// ---------------------------------------------------------------------------
+
+export interface BattleCardInput {
+  slugA: string;
+  domainA: string;
+  /** THE public number for contender A: the sniff score, 0–100. */
+  sniff_score_a: number;
+  tier_a: Tier;
+  slugB: string;
+  domainB: string;
+  /** THE public number for contender B: the sniff score, 0–100. */
+  sniff_score_b: number;
+  tier_b: Tier;
+  siteUrl: string;
+}
+
+export type BattleOutcome = 'a' | 'b' | 'tie';
+
+/**
+ * Who takes the battle. Higher sniff score = more real = wins.
+ * Pure and unit-tested — the frontend's verdict uses the same rule.
+ */
+export function battleOutcome(
+  input: Pick<BattleCardInput, 'sniff_score_a' | 'sniff_score_b'>,
+): BattleOutcome {
+  if (input.sniff_score_a > input.sniff_score_b) return 'a';
+  if (input.sniff_score_b > input.sniff_score_a) return 'b';
+  return 'tie';
+}
+
+/** The auto headline, uppercased domains. Never names people — domains only. */
+export function battleHeadline(input: BattleCardInput): string {
+  const a = input.domainA.toUpperCase();
+  const b = input.domainB.toUpperCase();
+  switch (battleOutcome(input)) {
+    case 'a':
+      return `${a} DESTROYED ${b}`;
+    case 'b':
+      return `${b} DESTROYED ${a}`;
+    case 'tie':
+      return `${a} TIED ${b} — THE NOSE SHRUGS`;
+  }
+}
+
+/** Deterministic battle report number from both slugs — no randomness. */
+function battleReportNumber(a: string, b: string): string {
+  return reportNumber(`${a}::${b}`);
+}
+
+const ROMAN_RED = '#A63D2F'; // --color-roman-red: the condemned mark
+
+/**
+ * One contender's half of the card: domain, giant score, tier in its
+ * color, and the VICTOR (gold) / CONDEMNED (roman red) stamp.
+ */
+function battleContenderSVG(
+  domain: string,
+  score: number,
+  tier: Tier,
+  stamp: 'VICTOR' | 'CONDEMNED' | null,
+  cx: number,
+  topY: number,
+): string {
+  const mono = "'JetBrains Mono',monospace";
+  const sans = "'Space Grotesk','Inter',sans-serif";
+  const color = rosetteColor(tier);
+  const stampColor = stamp === 'VICTOR' ? VPAL.gold : ROMAN_RED;
+  const domainSize = fitFontSize(domain.length, 440, 30, 0.6, 16);
+  return (
+    `<text x="${cx}" y="${topY}" text-anchor="middle" font-family="${mono}" font-weight="700" font-size="${domainSize}" fill="${VPAL.ink}">${escapeXml(domain)}</text>` +
+    `<text x="${cx - 4}" y="${topY + 150}" text-anchor="middle" font-family="${sans}" font-weight="700" font-size="150" letter-spacing="-3" fill="${VPAL.ink}">${score}</text>` +
+    `<text x="${cx}" y="${topY + 196}" text-anchor="middle" font-family="${sans}" font-weight="700" font-size="28" letter-spacing="2" fill="${color}">${escapeXml(tier)}</text>` +
+    (stamp === null
+      ? ''
+      : `<text x="${cx}" y="${topY + 244}" text-anchor="middle" font-family="${mono}" font-weight="700" font-size="26" letter-spacing="6" fill="${stampColor}">${stamp}</text>`)
+  );
+}
+
+export function buildBattleCardSVG(input: BattleCardInput): string {
+  const mono = "'JetBrains Mono',monospace";
+  const sans = "'Space Grotesk','Inter',sans-serif";
+  const innerX = 72;
+  const outcome = battleOutcome(input);
+  const headline = battleHeadline(input);
+  const headSize = fitFontSize(headline.length, CARD_W - innerX * 2, 64, 0.62, 28);
+  const diff = Math.abs(input.sniff_score_a - input.sniff_score_b);
+  const diffLine =
+    outcome === 'tie'
+      ? 'Identical scores. The arena demands a rematch.'
+      : `${diff} point${diff === 1 ? '' : 's'} between them. The thumb has fallen.`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_W}" height="${CARD_H}" viewBox="0 0 ${CARD_W} ${CARD_H}">
+<rect width="${CARD_W}" height="${CARD_H}" fill="${VPAL.paper}"/>
+<rect x="0" y="0" width="${CARD_W}" height="12" fill="${VPAL.ink}"/>
+<!-- header: monogram + SniffMySite + battle report -->
+<circle cx="${innerX}" cy="86" r="34" fill="${VPAL.ink}"/>
+<text x="${innerX}" y="99" text-anchor="middle" font-family="${sans}" font-weight="700" font-size="30" fill="${VPAL.paper}">S</text>
+<text x="${innerX + 50}" y="80" font-family="${sans}" font-weight="700" font-size="30" letter-spacing="3" fill="${VPAL.ink}">SNIFFMYSITE</text>
+<text x="${innerX + 50}" y="106" font-family="${mono}" font-size="16" letter-spacing="4" fill="${VPAL.faint}">BATTLE REPORT</text>
+<text x="${CARD_W - innerX}" y="80" text-anchor="end" font-family="${mono}" font-size="16" letter-spacing="2" fill="${VPAL.faint}">SNIFF REPORT ${battleReportNumber(input.slugA, input.slugB)}</text>
+<text x="${CARD_W - innerX}" y="106" text-anchor="end" font-family="${mono}" font-size="16" fill="${VPAL.faint}">two pages enter</text>
+<line x1="${innerX - 24}" y1="146" x2="${CARD_W - innerX + 24}" y2="146" stroke="${VPAL.hairline}" stroke-width="2"/>
+<!-- the auto headline -->
+<text x="${CARD_W / 2}" y="218" text-anchor="middle" font-family="${sans}" font-weight="700" font-size="${headSize}" letter-spacing="1" fill="${VPAL.ink}">${escapeXml(headline)}</text>
+<!-- the contenders, with a VS medallion between them -->
+${battleContenderSVG(input.domainA, input.sniff_score_a, input.tier_a, outcome === 'a' ? 'VICTOR' : outcome === 'tie' ? null : 'CONDEMNED', 330, 300)}
+<circle cx="560" cy="392" r="44" fill="none" stroke="${VPAL.ink}" stroke-width="4"/>
+<circle cx="640" cy="392" r="44" fill="none" stroke="${VPAL.ink}" stroke-width="4"/>
+<text x="600" y="400" text-anchor="middle" font-family="${sans}" font-weight="700" font-size="30" letter-spacing="2" fill="${VPAL.ink}">VS</text>
+${battleContenderSVG(input.domainB, input.sniff_score_b, input.tier_b, outcome === 'b' ? 'VICTOR' : outcome === 'tie' ? null : 'CONDEMNED', 870, 300)}
+<!-- the margin -->
+<text x="${CARD_W / 2}" y="566" text-anchor="middle" font-family="${sans}" font-style="italic" font-size="22" fill="${VPAL.faint}">${escapeXml(diffLine)}</text>
+<!-- footer -->
+<line x1="${innerX - 24}" y1="590" x2="${CARD_W - innerX + 24}" y2="590" stroke="${VPAL.hairline}" stroke-width="2"/>
+<text x="${innerX}" y="614" font-family="${mono}" font-size="15" fill="${VPAL.faint}">we joke about the page, never the people.</text>
+<text x="${CARD_W - innerX}" y="614" text-anchor="end" font-family="${mono}" font-size="15" fill="${VPAL.faint}">sniffmysite.lol/battle</text>
+</svg>`;
+}
+
+const battleCache = new Map<string, Buffer>();
+const BATTLE_MAX_CACHE = 100;
+
+/** Render (or fetch from cache) a battle share card PNG. */
+export async function getBattleCardPNG(
+  key: string,
+  input: BattleCardInput,
+): Promise<Buffer> {
+  const hit = battleCache.get(key);
+  if (hit) return hit;
+  const png = await renderVaporPNG(buildBattleCardSVG(input));
+  battleCache.set(key, png);
+  while (battleCache.size > BATTLE_MAX_CACHE) {
+    const oldest = battleCache.keys().next();
+    if (oldest.done) break;
+    battleCache.delete(oldest.value);
+  }
+  return png;
+}
+
+/** Exposed for tests. */
+export function _testClearBattleCache(): void {
+  battleCache.clear();
+}
+export function _testBattleCacheSize(): number {
+  return battleCache.size;
+}

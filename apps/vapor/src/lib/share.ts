@@ -9,7 +9,7 @@
 export interface SniffOffChallenge {
   /** The pre-written post text. */
   text: string;
-  /** Canonical absolute challenge URL (/compare?a=..&b=..). */
+  /** Canonical absolute challenge URL (/battle?a=..&b=..). */
   url: string;
   /** X intent link (text + url). */
   xHref: string;
@@ -35,7 +35,7 @@ export function buildSniffOffChallenge(
     `I challenged ${hostB} to a sniff-off on SniffMySite — ` +
     `${hostA} scored ${scoreA}, ${hostB} scored ${scoreB}. Beat that.`;
   const url =
-    `${origin}/compare` +
+    `${origin}/battle` +
     `?a=${encodeURIComponent(hostA)}&b=${encodeURIComponent(hostB)}`;
   const encText = encodeURIComponent(text);
   const encUrl = encodeURIComponent(url);
