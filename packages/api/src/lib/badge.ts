@@ -103,10 +103,10 @@ export interface BadgeResolution {
  * (getProfile: live journal first, seed fallback), so the badge always
  * shows the true latest score.
  */
-export function resolveBadge(raw: unknown): BadgeResolution {
+export async function resolveBadge(raw: unknown): Promise<BadgeResolution> {
   const slug = normalizeSlug(raw);
   if (!slug) return { status: 400, svg: badSlugSvg() };
-  const profile = getProfile(slug);
+  const profile = await getProfile(slug);
   if (!profile) return { status: 404, svg: notSniffedSvg() };
   return {
     status: 200,

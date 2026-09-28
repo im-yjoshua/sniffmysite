@@ -6,13 +6,15 @@
  * like the /scan route does it (record first, then the hook, which skips
  * scans[0] as its baseline).
  */
-import { describe, it, before, after, beforeEach } from 'node:test';
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import express, { type Express } from 'express';
 import type { Server } from 'node:http';
 import { AddressInfo } from 'node:net';
 import { vaporRouter } from '../routes/vapor';
-import { _resetScanLog, recordBoardScan } from '../lib/scanlog';
+import { _resetScanLog } from '../lib/scanlog';
+import { recordBoardScan } from '../lib/boardStore';
+import { installFakeBoardScans } from './helpers/fakeBoardStore';
 import type { ScanResult, Tier } from '../lib/score';
 import { ALGO_VERSION } from '../lib/score';
 import {
@@ -86,7 +88,7 @@ function fakeResult(
 /** The real /scan-route flow: record first, then run the hook. */
 async function scan(domain: string, score: number, tier: Tier, sender: AlertSender): Promise<void> {
   const result = fakeResult(score, tier);
-  recordBoardScan({ finalUrl: `https://${domain}/`, result });
+  await recordBoardScan({ finalUrl: `https://${domain}/`, result });
   await processScanForWatchlist(`https://${domain}/`, result, sender);
 }
 
@@ -158,11 +160,14 @@ describe('watchlist store', () => {
 
 describe('processScanForWatchlist', () => {
   const D = FREE_DOMAIN;
-  beforeEach(() => {
+  let restoreBoard: () => void = () => {};
+  beforeEach(async () => {
     resetClaims();
     resetWatchlist();
     _resetScanLog();
+    restoreBoard = (await installFakeBoardScans([])).restore;
   });
+  afterEach(() => restoreBoard());
 
   it('alerts on a 10+ point drop, exactly once', async () => {
     watch(D, FREE_EMAIL);
@@ -240,10 +245,10 @@ describe('processScanForWatchlist', () => {
     const { sender, calls } = fakeSender();
     // A v1-era scan as the only history chapter.
     const v1 = fakeResult(90, 'LAUREATE', 'v1');
-    recordBoardScan({ finalUrl: `https://${D}/`, result: v1 });
+    await recordBoardScan({ finalUrl: `https://${D}/`, result: v1 });
     // Now a v2 scan drops 15 points: no same-version baseline → silence.
     const v2 = fakeResult(75, 'GLADIATOR', 'v2');
-    recordBoardScan({ finalUrl: `https://${D}/`, result: v2 });
+    await recordBoardScan({ finalUrl: `https://${D}/`, result: v2 });
     await processScanForWatchlist(`https://${D}/`, v2, sender);
     assert.equal(calls.length, 0);
   });
@@ -260,7 +265,7 @@ describe('processScanForWatchlist', () => {
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
     const result = fakeResult(10, 'LION FOOD');
-    recordBoardScan({ finalUrl: `https://${D}/`, result });
+    await recordBoardScan({ finalUrl: `https://${D}/`, result });
     await processScanForWatchlist(`https://${D}/`, result, sender);
     assert.equal(calls.length, 0);
   });
@@ -286,9 +291,9 @@ describe('processScanForWatchlist', () => {
       throw new Error('resend is down');
     };
     const r1 = fakeResult(90, 'LAUREATE');
-    recordBoardScan({ finalUrl: `https://${D}/`, result: r1 });
+    await recordBoardScan({ finalUrl: `https://${D}/`, result: r1 });
     const r2 = fakeResult(75, 'GLADIATOR');
-    recordBoardScan({ finalUrl: `https://${D}/`, result: r2 });
+    await recordBoardScan({ finalUrl: `https://${D}/`, result: r2 });
     await processScanForWatchlist(`https://${D}/`, r2, badSender);
     assert.equal(calls.length, 1);
     assert.equal(getWatchlistEntry(D)?.lastAlertedScore, null); // owed, retry later
@@ -296,24 +301,27 @@ describe('processScanForWatchlist', () => {
 });
 
 describe('claim flow + watchlist integration', () => {
-  beforeEach(() => {
+  let restoreBoard: () => void = () => {};
+  beforeEach(async () => {
     resetClaims();
     resetWatchlist();
     _resetScanLog();
+    restoreBoard = (await installFakeBoardScans([])).restore;
   });
+  afterEach(() => restoreBoard());
 
   function dnsForToken(token: string): DnsLookup {
     return async () => [[txtRecordValue(token)]];
   }
 
-  function claimToken(domain: string, opts?: { email?: unknown; alerts?: unknown }): string {
-    const outcome = createClaim(domain, opts);
+  async function claimToken(domain: string, opts?: { email?: unknown; alerts?: unknown }): Promise<string> {
+    const outcome = await createClaim(domain, opts);
     assert.equal(outcome.ok, true);
     return outcome.ok ? outcome.record.token : '';
   }
 
   it('watchlist entry lands ONLY on successful verify with email + opt-in', async () => {
-    const token = claimToken(DOMAIN, { email: ' Founder@Stripe.COM ', alerts: true });
+    const token = await claimToken(DOMAIN, { email: ' Founder@Stripe.COM ', alerts: true });
     assert.equal(getWatchlistEntry(DOMAIN), null); // token request alone: nothing
     const outcome = await verifyClaim(DOMAIN, dnsForToken(token));
     assert.equal(outcome.verified, true);
@@ -323,25 +331,25 @@ describe('claim flow + watchlist integration', () => {
   });
 
   it('alerts:false means verify leaves no watchlist entry', async () => {
-    const token = claimToken(DOMAIN, { email: EMAIL, alerts: false });
+    const token = await claimToken(DOMAIN, { email: EMAIL, alerts: false });
     assert.equal((await verifyClaim(DOMAIN, dnsForToken(token))).verified, true);
     assert.equal(getWatchlistEntry(DOMAIN), null);
   });
 
   it('no email means no watchlist entry (legacy callers unchanged)', async () => {
-    const token = claimToken(DOMAIN); // one-arg compatible call
+    const token = await claimToken(DOMAIN); // one-arg compatible call
     assert.equal((await verifyClaim(DOMAIN, dnsForToken(token))).verified, true);
     assert.equal(getWatchlistEntry(DOMAIN), null);
   });
 
   it('email defaults alerts on when no alerts flag is passed', async () => {
-    const token = claimToken(DOMAIN, { email: EMAIL });
+    const token = await claimToken(DOMAIN, { email: EMAIL });
     assert.equal((await verifyClaim(DOMAIN, dnsForToken(token))).verified, true);
     assert.ok(getWatchlistEntry(DOMAIN));
   });
 
   it('idempotent verify path also upserts (email added between checks)', async () => {
-    const token = claimToken(DOMAIN, { email: EMAIL });
+    const token = await claimToken(DOMAIN, { email: EMAIL });
     assert.equal((await verifyClaim(DOMAIN, dnsForToken(token))).verified, true);
     assert.ok(getWatchlistEntry(DOMAIN));
     // A second check (already-verified path, no DNS) keeps it watched.
@@ -352,10 +360,10 @@ describe('claim flow + watchlist integration', () => {
     assert.ok(getWatchlistEntry(DOMAIN));
   });
 
-  it('re-claim updates the stored email without rotating the token', () => {
-    const first = createClaim(DOMAIN, { email: 'old@stripe.com', alerts: true });
+  it('re-claim updates the stored email without rotating the token', async () => {
+    const first = await createClaim(DOMAIN, { email: 'old@stripe.com', alerts: true });
     assert.equal(first.ok, true);
-    const second = createClaim(DOMAIN, { email: 'new@stripe.com' });
+    const second = await createClaim(DOMAIN, { email: 'new@stripe.com' });
     assert.equal(first.ok && second.ok, true);
     if (first.ok && second.ok) {
       assert.equal(second.isNew, false);
@@ -364,15 +372,15 @@ describe('claim flow + watchlist integration', () => {
     }
   });
 
-  it('garbage email fails with invalid_email at the lib level', () => {
+  it('garbage email fails with invalid_email at the lib level', async () => {
     for (const bad of ['not-an-email', 'a@b', '@x.com', 42, {}, ['x']]) {
-      const outcome = createClaim(DOMAIN, { email: bad });
+      const outcome = await createClaim(DOMAIN, { email: bad });
       assert.equal(outcome.ok, false);
       if (!outcome.ok) assert.equal(outcome.error, 'invalid_email');
     }
     // Empty values are just "no email", not errors.
     for (const empty of [undefined, null, '', '   ']) {
-      const outcome = createClaim(DOMAIN, { email: empty });
+      const outcome = await createClaim(DOMAIN, { email: empty });
       assert.equal(outcome.ok, true);
       if (outcome.ok) assert.equal(outcome.record.email, null);
       resetClaims();
@@ -380,7 +388,7 @@ describe('claim flow + watchlist integration', () => {
   });
 
   it('normalizeAlertEmail never returns the raw address for bad input', async () => {
-    const outcome = createClaim(DOMAIN, { email: '!!!bad!!!' });
+    const outcome = await createClaim(DOMAIN, { email: '!!!bad!!!' });
     assert.equal(outcome.ok, false);
     if (!outcome.ok) {
       assert.equal(outcome.error, 'invalid_email');
@@ -389,7 +397,7 @@ describe('claim flow + watchlist integration', () => {
   });
 
   it('end-to-end: verify → 10-point drop re-scan → alert queued', async () => {
-    const token = claimToken(DOMAIN, { email: EMAIL, alerts: true });
+    const token = await claimToken(DOMAIN, { email: EMAIL, alerts: true });
     assert.equal((await verifyClaim(DOMAIN, dnsForToken(token))).verified, true);
     const { sender, calls } = fakeSender();
     await scan(DOMAIN, 90, 'LAUREATE', sender);

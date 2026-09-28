@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { fetchPage, FetchError, MAX_URL_LENGTH, fetchErrorHttpStatus, fetchErrorPublicDetail } from '../lib/fetch';
 import { scorePage, sniffScoreFor, ALGO_VERSION } from '../lib/score';
 import { type LeaderboardSort } from '../lib/seed';
-import { recordBoardScan, getBoard } from '../lib/scanlog';
+import { recordBoardScan, getBoard } from '../lib/boardStore';
 import { normalizeSlug, getProfile } from '../lib/profile';
 import { getVaporCardPNG, vaporCardCacheKey, getBattleCardPNG, battleOutcome } from '../lib/vapor-card';
 import { resolveBadge } from '../lib/badge';
@@ -186,7 +186,9 @@ vaporRouter.post('/scan', async (req, res) => {
     // The LIVE leaderboard feeds from here too: every successful scan
     // lands in the journal — new hosts appear on the board, re-scans
     // update the row and append a history chapter (the Most Improved fuel).
-    recordBoardScan({ finalUrl: page.finalUrl, result });
+    // Awaited: the write is best-effort (never fails the scan), and the
+    // watchlist hook below must see this scan as its baseline.
+    await recordBoardScan({ finalUrl: page.finalUrl, result });
     // Growth plan §3: score-drop alerts. Fire-and-forget — the lookup runs
     // AFTER recordBoardScan (so the baseline is the previous scan, no
     // ordering trap), and it never slows or breaks the scan response.
@@ -277,7 +279,7 @@ vaporRouter.get(
 vaporRouter.get(
   '/movers',
   rateLimit('movers', LEADERBOARD_LIMIT, LEADERBOARD_WINDOW_MS),
-  (req, res) => {
+  async (req, res) => {
     const raw = req.query.window;
     const window: string =
       typeof raw === 'string' && raw.length > 0 ? raw : '7d';
@@ -288,7 +290,7 @@ vaporRouter.get(
           "window must be '7d' or '30d' — how far back should the nose look?",
       });
     }
-    return res.json(getMovers(window));
+    return res.json(await getMovers(window));
   },
 );
 
@@ -304,7 +306,7 @@ vaporRouter.get(
 vaporRouter.get(
   '/leaderboard',
   rateLimit('leaderboard', LEADERBOARD_LIMIT, LEADERBOARD_WINDOW_MS),
-  (req, res) => {
+  async (req, res) => {
   const raw = req.query.sort;
   const sort: string = typeof raw === 'string' && raw.length > 0 ? raw : 'real';
   if (sort !== 'vapor' && sort !== 'real' && sort !== 'improved') {
@@ -313,7 +315,7 @@ vaporRouter.get(
       detail: 'sort must be one of: vapor, real, improved',
     });
   }
-  const entries = getBoard(sort as LeaderboardSort);
+  const entries = await getBoard(sort as LeaderboardSort);
   return res.json({
     sort,
     count: entries.length,
@@ -325,7 +327,7 @@ vaporRouter.get(
  * GET /api/vapor/startup/:slug — the specimen dossier (Task 7, §2.3).
  * Slug = normalized domain (§2.9). Unknown slugs 404; malformed slugs 400.
  */
-vaporRouter.get('/startup/:slug', (req, res) => {
+vaporRouter.get('/startup/:slug', async (req, res) => {
   const slug = normalizeSlug(req.params.slug);
   if (!slug) {
     return res.status(400).json({
@@ -333,7 +335,7 @@ vaporRouter.get('/startup/:slug', (req, res) => {
       detail: 'Slug must be a normalized domain, e.g. "character.ai".',
     });
   }
-  const profile = getProfile(slug);
+  const profile = await getProfile(slug);
   if (!profile) {
     return res.status(404).json({
       error: 'startup_not_found',
@@ -355,8 +357,8 @@ vaporRouter.get('/startup/:slug', (req, res) => {
  * because badges are MEANT to be hotlinked on other people's sites
  * (same reasoning as the share-card PNGs, Task 10).
  */
-vaporRouter.get('/badge/:slug.svg', (req, res) => {
-  const { status, svg } = resolveBadge(req.params.slug);
+vaporRouter.get('/badge/:slug.svg', async (req, res) => {
+  const { status, svg } = await resolveBadge(req.params.slug);
   res
     .status(status)
     .type('image/svg+xml')
@@ -379,7 +381,7 @@ vaporRouter.get('/og/:slug.png', async (req, res) => {
       detail: 'Slug must be a normalized domain, e.g. "character.ai".',
     });
   }
-  const profile = getProfile(slug);
+  const profile = await getProfile(slug);
   if (!profile) {
     return res.status(404).json({ error: 'startup_not_found' });
   }
@@ -643,9 +645,9 @@ vaporRouter.post(
 vaporRouter.post(
   '/claim',
   rateLimit('vapor-claim', CLAIM_LIMIT, CLAIM_WINDOW_MS),
-  (req, res) => {
+  async (req, res) => {
   const { domain, email, alerts } = req.body ?? {};
-  const outcome = createClaim(domain, { email, alerts });
+  const outcome = await createClaim(domain, { email, alerts });
   if (!outcome.ok) {
     if (outcome.error === 'invalid_email') {
       return res.status(400).json({
@@ -692,7 +694,7 @@ vaporRouter.post(
       detail: 'Provide a "domain" string, e.g. "stripe.com".',
     });
   }
-  if (!getProfile(slug)) {
+  if (!(await getProfile(slug))) {
     return res.status(404).json({ error: 'startup_not_found' });
   }
   try {
@@ -987,7 +989,7 @@ async function runPriorityScan(url: string): Promise<PriorityScanResult> {
     tier: result.tier,
     scanned_at: result.scanned_at,
   });
-  recordBoardScan({ finalUrl: page.finalUrl, result });
+  await recordBoardScan({ finalUrl: page.finalUrl, result });
   void processScanForWatchlist(page.finalUrl, result).catch((e) =>
     console.error('[watchlist]', e),
   );

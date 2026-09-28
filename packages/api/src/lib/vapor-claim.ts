@@ -99,10 +99,10 @@ export interface ClaimOpts {
  * rotating it would invalidate a TXT record the founder just published.
  * Re-claims with opts update the stored email/alerts when provided.
  */
-export function createClaim(rawDomain: unknown, opts?: ClaimOpts): ClaimOutcome {
+export async function createClaim(rawDomain: unknown, opts?: ClaimOpts): Promise<ClaimOutcome> {
   const domain = normalizeSlug(rawDomain);
   if (!domain) return { ok: false, error: 'invalid_domain' };
-  if (!getProfile(domain)) return { ok: false, error: 'startup_not_found' };
+  if (!(await getProfile(domain))) return { ok: false, error: 'startup_not_found' };
 
   const email = normalizeAlertEmail(opts?.email);
   if (email === 'invalid') return { ok: false, error: 'invalid_email' };

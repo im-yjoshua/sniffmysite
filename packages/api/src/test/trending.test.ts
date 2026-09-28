@@ -162,7 +162,7 @@ describe('GET /api/vapor/trending', () => {
     }
   });
 
-  it('has_profile is true for a board-listed host, false otherwise', async () => {
+  it('has_profile is true: every trending host was just sniffed, so its dossier exists', async () => {
     recordRecentScan(inputFor('character.ai', 53));
     recordRecentScan(inputFor('example.org', 74));
     const body = (await (await fetch(base)).json()) as any;
@@ -170,7 +170,7 @@ describe('GET /api/vapor/trending', () => {
       body.hosts.map((h: any) => [h.host, h]),
     );
     assert.equal(byHost['character.ai'].has_profile, true);
-    assert.equal(byHost['example.org'].has_profile, false);
+    assert.equal(byHost['example.org'].has_profile, true);
   });
 
   it('429s past 300 hits/hr with a Retry-After (generous, not punitive)', async () => {

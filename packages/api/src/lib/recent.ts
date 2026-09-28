@@ -19,7 +19,7 @@
  */
 
 import type { Tier } from './score';
-import { normalizeSlug, getProfile } from './profile';
+import { normalizeSlug } from './profile';
 
 /** Cap on how many scans the ring log keeps. */
 export const RECENT_MAX = 15;
@@ -109,7 +109,12 @@ export function recordRecentScan(input: RecentScanInput): RecentScan | null {
     sniff_score: input.sniff_score,
     tier: input.tier,
     scanned_at: input.scanned_at,
-    has_profile: getProfile(slug) !== null,
+    // Every successfully scanned host lands in the journal, and every
+    // journaled host has a dossier by construction — this runs only on
+    // the success path, right where the scan is journaled. (The old code
+    // looked this up against the in-memory journal and could report false
+    // for a brand-new host's very first scan.)
+    has_profile: true,
   };
   // Per-host dedupe: the log is "latest scan per host, newest first". A
   // re-scan bumps its host to the front with the fresh score instead of

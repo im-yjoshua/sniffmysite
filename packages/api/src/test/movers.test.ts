@@ -6,10 +6,11 @@
  * cap, trailing-window filtering, the honest thin-window note, and 400 on
  * an invalid `?window=`.
  *
- * Seeds via recordBoardScan (the same seam POST /scan uses) with synthetic
- * ScanResults on `.test` domains — never seed-listed hosts, so no adopted
+ * Seeds by building host histories directly — computeMovers is pure over
+ * them — with synthetic ScanResults on `.test` domains, so no adopted
  * seed chapters interfere with the window math. Real scans can't run in
- * this sandbox (DNS is blocked, so fetchPage always 403s).
+ * this sandbox (DNS is blocked, so fetchPage always 403s). The DB-backed
+ * getMovers is covered by boardStore tests + the route shape tests below.
  */
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,15 +18,13 @@ import express, { type Express } from 'express';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import {
-  getMovers,
+  computeMovers,
   isMoversWindow,
   MOVERS_PER_SIDE,
   type MoversWindow,
 } from '../lib/movers.js';
-import {
-  recordBoardScan,
-  _resetScanLog,
-} from '../lib/scanlog.js';
+import { _resetScanLog } from '../lib/scanlog.js';
+import type { LiveHost } from '../lib/scanlog.js';
 import { vaporRouter } from '../routes/vapor.js';
 import { _resetRateLimits } from '../lib/ratelimit.js';
 import { ALGO_VERSION, tierFor, type ScanResult, type Tier } from '../lib/score.js';
@@ -77,13 +76,30 @@ function fakeResult(
   } as ScanResult;
 }
 
-/** Record one scan for a host, newest-first ordering handled by the log. */
+interface ScanSpec { host: string; score: number; daysAgo: number; algo: string }
+let specs: ScanSpec[] = [];
+
+/** Queue one scan for a host — histories are built newest-first, like the journal. */
 function scan(host: string, score: number, daysAgo: number, algo: string = ALGO_VERSION) {
-  const r = recordBoardScan({
-    finalUrl: `https://${host}/`,
-    result: fakeResult(score, isoAgo(daysAgo), algo),
-  });
-  assert.ok(r, `recordBoardScan failed for ${host}`);
+  specs.push({ host, score, daysAgo, algo });
+}
+
+function buildHosts(): LiveHost[] {
+  const byHost = new Map<string, ScanResult[]>();
+  for (const s of specs) {
+    const list = byHost.get(s.host) ?? [];
+    list.push(fakeResult(s.score, isoAgo(s.daysAgo), s.algo));
+    byHost.set(s.host, list);
+  }
+  return [...byHost].map(([domain, scans]) => ({
+    domain,
+    scans: scans.sort((a, b) => b.scanned_at.localeCompare(a.scanned_at)),
+  }));
+}
+
+/** The pure ranking math over the queued scans. */
+function movers(window: MoversWindow) {
+  return computeMovers(buildHosts(), window, NOW);
 }
 
 describe('isMoversWindow', () => {
@@ -97,8 +113,11 @@ describe('isMoversWindow', () => {
   });
 });
 
-describe('getMovers', () => {
-  beforeEach(() => _resetScanLog());
+describe('computeMovers', () => {
+  beforeEach(() => {
+    specs = [];
+    _resetScanLog();
+  });
 
   it('ranks gainers and losers by |delta|, newest minus oldest in-window', () => {
     // gainer.test: 60 → 75 (delta +15); loser.test: 80 → 62 (delta −18)
@@ -106,7 +125,7 @@ describe('getMovers', () => {
     scan('gainer.test', 75, 1);
     scan('loser.test', 80, 5);
     scan('loser.test', 62, 1);
-    const m = getMovers('7d', NOW);
+    const m = movers('7d');
     assert.equal(m.gainers.length, 1);
     assert.equal(m.gainers[0].domain, 'gainer.test');
     assert.equal(m.gainers[0].old_score, 60);
@@ -121,7 +140,7 @@ describe('getMovers', () => {
   it('never mixes algo versions — a v1→v2 jump is not a move', () => {
     scan('mixed.test', 40, 6, 'v1');
     scan('mixed.test', 90, 1, 'v2');
-    const m = getMovers('7d', NOW);
+    const m = movers('7d');
     assert.equal(m.gainers.length, 0);
     assert.equal(m.losers.length, 0);
     assert.equal(m.hosts_tracked, 0);
@@ -133,7 +152,7 @@ describe('getMovers', () => {
     scan('anchored.test', 35, 5, 'v1');
     scan('anchored.test', 70, 2, 'v2');
     scan('anchored.test', 85, 1, 'v2');
-    const m = getMovers('7d', NOW);
+    const m = movers('7d');
     assert.equal(m.gainers.length, 1);
     assert.equal(m.gainers[0].old_score, 70);
     assert.equal(m.gainers[0].new_score, 85);
@@ -143,16 +162,16 @@ describe('getMovers', () => {
   it('ignores scans outside the trailing window', () => {
     scan('stale.test', 50, 20);
     scan('stale.test', 90, 1);
-    const m7 = getMovers('7d', NOW);
+    const m7 = movers('7d');
     assert.equal(m7.hosts_tracked, 0, '20-day-old scan is outside 7d');
-    const m30 = getMovers('30d', NOW);
+    const m30 = movers('30d');
     assert.equal(m30.hosts_tracked, 1, 'both scans inside 30d');
     assert.equal(m30.gainers[0].delta, 40);
   });
 
   it('a single scan in the window never qualifies', () => {
     scan('lonely.test', 70, 1);
-    const m = getMovers('7d', NOW);
+    const m = movers('7d');
     assert.equal(m.hosts_tracked, 0);
   });
 
@@ -162,7 +181,7 @@ describe('getMovers', () => {
       scan(`cap${i}.test`, 50, 3);
       scan(`cap${i}.test`, 50 + i, 1);
     }
-    const m = getMovers('7d', NOW);
+    const m = movers('7d');
     assert.equal(m.gainers.length, MOVERS_PER_SIDE);
     assert.equal(m.gainers[0].delta, 12);
     assert.equal(m.gainers[9].delta, 3);
@@ -177,7 +196,7 @@ describe('getMovers', () => {
     scan('flat.test', 70, 1);
     scan('flat2.test', 85, 3);
     scan('flat2.test', 85, 1);
-    const m = getMovers('7d', NOW);
+    const m = movers('7d');
     assert.equal(m.hosts_tracked, 2);
     assert.equal(m.gainers.length, 0);
     assert.equal(m.losers.length, 0);
@@ -193,7 +212,7 @@ describe('getMovers', () => {
   it('thin window → honest note; full window → no note', () => {
     scan('thin1.test', 60, 3);
     scan('thin1.test', 75, 1);
-    const thin = getMovers('7d', NOW);
+    const thin = movers('7d');
     assert.ok(thin.note, 'note present when <5 qualify');
     assert.match(thin.note!, /Early days/);
     assert.match(thin.note!, /only 1 site has two sniffs this week/);
@@ -202,20 +221,20 @@ describe('getMovers', () => {
       scan(`thin${i}.test`, 60, 3);
       scan(`thin${i}.test`, 75, 1);
     }
-    const full = getMovers('7d', NOW);
+    const full = movers('7d');
     assert.equal(full.hosts_tracked, 6);
     assert.equal(full.note, undefined);
   });
 
   it('30d thin note names the 30-day span', () => {
-    const m = getMovers('30d', NOW);
+    const m = movers('30d');
     assert.match(m.note!, /last 30 days/);
   });
 
   it('rows link to dossiers: slug + has_profile present', () => {
     scan('gainer.test', 60, 3);
     scan('gainer.test', 75, 1);
-    const m = getMovers('7d', NOW);
+    const m = movers('7d');
     assert.equal(m.gainers[0].slug, 'gainer.test');
     assert.equal(typeof m.gainers[0].has_profile, 'boolean');
   });

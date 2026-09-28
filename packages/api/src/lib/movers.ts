@@ -12,8 +12,8 @@
  * on the latest in-window scan). A v1→v2 formula jump is a lab change, not
  * a product move — it never appears as a mover.
  *
- * Data source: the in-memory scan journal (lib/scanlog.ts), which keeps
- * each host's FULL history newest-first. Seed scans adopted as history
+ * Data source: the Supabase-backed scan journal (lib/boardStore.ts), which
+ * keeps each host's FULL history newest-first. Seed scans adopted as history
  * chapter 1 count like any other scan — exactly as Most Improved treats
  * them — as long as they're inside the window and same-version.
  *
@@ -21,13 +21,12 @@
  * response carries an `note` saying so in plain words ("early days — only
  * N sites have two sniffs this week"). The list is never padded.
  *
- * State lives in the journal (in-memory, lost on restart, same seam story
- * as the other stores). No new persistent state here.
+ * No new persistent state here — the journal owns the data.
  */
 
-import { getAllLiveHosts } from './scanlog';
-import { getProfile } from './profile';
+import { getHostsScannedSince } from './boardStore';
 import { normalizeSlug } from './slug';
+import type { LiveHost } from './scanlog';
 import type { Tier } from './score';
 
 /** Accepted `?window=` values. */
@@ -87,15 +86,19 @@ export function isMoversWindow(raw: unknown): raw is MoversWindow {
   return raw === '7d' || raw === '30d';
 }
 
-/** Biggest movers in the trailing window. Pure over the journal + clock. */
-export function getMovers(
+/**
+ * Biggest movers in the trailing window. Pure over host histories + clock
+ * — the ranking math, unit-testable without a database.
+ */
+export function computeMovers(
+  hosts: LiveHost[],
   window: MoversWindow,
   now: number = Date.now(),
 ): MoversResult {
   const cutoff = now - MOVER_WINDOWS[window];
   const qualified: MoverRow[] = [];
 
-  for (const host of getAllLiveHosts()) {
+  for (const host of hosts) {
     const inWindow = host.scans.filter((s) => {
       const t = Date.parse(s.scanned_at);
       return Number.isFinite(t) && t >= cutoff;
@@ -118,7 +121,9 @@ export function getMovers(
       new_score: latest.sniff_score,
       delta,
       tier: latest.tier,
-      has_profile: slug !== '' && getProfile(slug) !== null,
+      // Every host here came from the journal, and every journaled host
+      // has a dossier by construction — no per-row lookup needed.
+      has_profile: true,
     });
   }
 
@@ -159,4 +164,18 @@ export function getMovers(
       `two sniffs ${span}. Sniff a page twice and it could top this board.`;
   }
   return result;
+}
+
+/**
+ * Biggest movers in the trailing window, read from the Supabase-backed
+ * journal. Empty (with the honest thin-window note) when the read fails.
+ */
+export async function getMovers(
+  window: MoversWindow,
+  now: number = Date.now(),
+): Promise<MoversResult> {
+  const hosts = await getHostsScannedSince(
+    new Date(now - MOVER_WINDOWS[window]).toISOString(),
+  );
+  return computeMovers(hosts, window, now);
 }

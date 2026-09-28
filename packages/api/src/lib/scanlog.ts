@@ -60,14 +60,26 @@ export function _resetScanLog(): void {
 
 /** The board row for one live host: latest score, delta vs its FIRST scan. */
 function boardEntryFor(host: LiveHost): LeaderboardEntry {
-  const latest = host.scans[0];
+  return boardEntryForScans(host.domain, host.scans);
+}
+
+/**
+ * Pure board-row builder: latest scan + delta vs the oldest scan sharing
+ * the latest's algo_version. Shared by the in-memory journal and the
+ * Supabase-backed boardStore — one definition of what a board row is.
+ */
+export function boardEntryForScans(
+  domain: string,
+  scans: ScanResult[],
+): LeaderboardEntry {
+  const latest = scans[0];
   // "Most Improved" compares earliest↔latest scans within the SAME algo
   // version — a v1→v2 formula jump is not "improvement". Anchor on the
   // latest scan and take the oldest scan that shares its algo_version.
-  const sameVersion = host.scans.filter((s) => s.algo_version === latest.algo_version);
+  const sameVersion = scans.filter((s) => s.algo_version === latest.algo_version);
   const first = sameVersion[sameVersion.length - 1];
   return {
-    domain: host.domain,
+    domain,
     vapor_score: latest.vapor_score,
     sniff_score: latest.sniff_score,
     tier: latest.tier,
@@ -77,6 +89,20 @@ function boardEntryFor(host: LiveHost): LeaderboardEntry {
     delta:
       sameVersion.length >= 2 ? latest.sniff_score - first.sniff_score : null,
   };
+}
+
+/**
+ * Seed adoption, shared by both journal backends: a host's first live
+ * sighting adopts its seed scan as history chapter 1 (oldest). The seed
+ * score is never edited — it just frames the "before" so the first
+ * re-scan immediately has a real delta. Hosts with no seed pass through
+ * untouched.
+ */
+export function adoptSeed(domain: string, scans: ScanResult[]): ScanResult[] {
+  if (scans.length === 0) return scans;
+  const seed = getSeedResults().find((e) => e.domain === domain);
+  if (!seed) return scans;
+  return [...scans, seed.result];
 }
 
 /**

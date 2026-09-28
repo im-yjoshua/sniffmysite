@@ -50,12 +50,12 @@ describe('recordRecentScan', () => {
     assert.equal(rec.scanned_at, '2026-09-21T12:00:00.000Z');
   });
 
-  it('has_profile is true for a board-listed slug, false otherwise', () => {
+  it('has_profile is true: every recent scan is a successful scan, and every successful scan is journaled with a dossier', () => {
     const known = recordRecentScan(inputFor('character.ai', 53));
     const unknown = recordRecentScan(inputFor('example.org', 74));
     assert.ok(known && unknown);
     assert.equal(known.has_profile, true, 'character.ai has a dossier');
-    assert.equal(unknown.has_profile, false);
+    assert.equal(unknown.has_profile, true, 'example.org was just sniffed: dossier exists');
   });
 
   it('keeps newest first', () => {

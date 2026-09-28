@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { normalizeSlug } from './slug';
-import { getLiveHost } from './scanlog';
+import { getLiveHost } from './boardStore';
 import { sendScoreDropAlert } from './resend';
 import { type ScanResult, type Tier } from './score';
 
@@ -144,7 +144,7 @@ export async function processScanForWatchlist(
   // scans[0] is the just-recorded scan — skip it. Take the most recent
   // scan sharing the new result's algo_version (seed adoption makes this
   // work for fixture hosts on their first live sighting).
-  const history = getLiveHost(domain)?.scans ?? [];
+  const history = (await getLiveHost(domain))?.scans ?? [];
   const baseline = history.slice(1).find((s) => s.algo_version === result.algo_version);
   if (!baseline) return;
 

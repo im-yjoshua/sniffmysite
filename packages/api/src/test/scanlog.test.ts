@@ -23,7 +23,8 @@ import {
   _resetScanLog,
 } from '../lib/scanlog';
 import { getSeedEntries } from '../lib/seed';
-import { getProfile } from '../lib/profile';
+import { recordBoardScan as recordBoardScanDb } from '../lib/boardStore';
+import { installFakeBoardScans } from './helpers/fakeBoardStore';
 import { vaporRouter } from '../routes/vapor';
 
 const VAPOROUS_HTML = `
@@ -265,37 +266,6 @@ describe('live scan journal', () => {
     assert.equal(row, null);
     assert.equal(getBoardEntries().length, 20);
   });
-
-  it('profiles follow the journal: current = latest scan, history grows', () => {
-    const { vaporous, clean } = checkFixturesDiffer();
-    recordBoardScan({
-      finalUrl: 'https://newkid.test/',
-      result: fakeScan(VAPOROUS_HTML, 'https://newkid.test/', '2026-09-21T10:00:00.000Z'),
-    });
-    recordBoardScan({
-      finalUrl: 'https://newkid.test/',
-      result: fakeScan(CLEAN_HTML, 'https://newkid.test/', '2026-09-21T11:00:00.000Z'),
-    });
-    const p = getProfile('newkid.test');
-    assert.ok(p);
-    assert.equal(p.current.sniff_score, clean.sniff_score);
-    assert.equal(p.history.length, 2);
-    assert.equal(p.history[0].sniff_score, clean.sniff_score, 'newest first');
-    assert.equal(p.history[1].sniff_score, vaporous.sniff_score);
-  });
-
-  it('a fixture host re-scan updates its dossier too', () => {
-    const { clean } = checkFixturesDiffer();
-    recordBoardScan({
-      finalUrl: 'https://www.stripe.com/',
-      result: fakeScan(CLEAN_HTML, 'https://www.stripe.com/', '2026-09-21T12:00:00.000Z'),
-    });
-    const p = getProfile('www.stripe.com');
-    assert.ok(p);
-    assert.equal(p.domain, 'stripe.com');
-    assert.equal(p.current.sniff_score, clean.sniff_score);
-    assert.equal(p.history.length, 2, 'seed chapter + live chapter');
-  });
 });
 
 describe('GET /api/vapor/leaderboard (live merge)', () => {
@@ -324,38 +294,46 @@ describe('GET /api/vapor/leaderboard (live merge)', () => {
   }
 
   it('merges a live scan into the endpoint response', async () => {
-    _resetScanLog();
-    const { clean } = checkFixturesDiffer();
-    recordBoardScan({
-      finalUrl: 'https://freshmeat.test/',
-      result: fakeScan(CLEAN_HTML, 'https://freshmeat.test/', '2026-09-21T10:00:00.000Z'),
-    });
-    const { status, body } = await get('?sort=real');
-    assert.equal(status, 200);
-    assert.equal(body.count, 21);
-    const row = body.entries.find((e: any) => e.domain === 'freshmeat.test');
-    assert.ok(row, 'the new scan is on the board');
-    assert.equal(row.sniff_score, clean.sniff_score);
+    const { restore } = await installFakeBoardScans([]);
+    try {
+      const { clean } = checkFixturesDiffer();
+      await recordBoardScanDb({
+        finalUrl: 'https://freshmeat.test/',
+        result: fakeScan(CLEAN_HTML, 'https://freshmeat.test/', '2026-09-21T10:00:00.000Z'),
+      });
+      const { status, body } = await get('?sort=real');
+      assert.equal(status, 200);
+      assert.equal(body.count, 21);
+      const row = body.entries.find((e: any) => e.domain === 'freshmeat.test');
+      assert.ok(row, 'the new scan is on the board');
+      assert.equal(row.sniff_score, clean.sniff_score);
+    } finally {
+      restore();
+    }
   });
 
   it('live re-scan of a fixture host replaces its endpoint row', async () => {
-    _resetScanLog();
-    const { clean } = checkFixturesDiffer();
-    recordBoardScan({
-      finalUrl: 'https://character.ai/',
-      result: fakeScan(CLEAN_HTML, 'https://character.ai/', '2026-09-21T10:00:00.000Z'),
-    });
-    const { status, body } = await get('?sort=real');
-    assert.equal(status, 200);
-    assert.equal(body.count, 20, 'no duplicate row');
-    const row = body.entries.find((e: any) => e.domain === 'character.ai');
-    assert.ok(row);
-    assert.equal(row.sniff_score, clean.sniff_score, 'fixture row overridden by the live scan');
-    assert.notEqual(row.sniff_score, 48, 'the old fixture score is gone from the board');
+    const { restore } = await installFakeBoardScans([]);
+    try {
+      const { clean } = checkFixturesDiffer();
+      await recordBoardScanDb({
+        finalUrl: 'https://character.ai/',
+        result: fakeScan(CLEAN_HTML, 'https://character.ai/', '2026-09-21T10:00:00.000Z'),
+      });
+      const { status, body } = await get('?sort=real');
+      assert.equal(status, 200);
+      assert.equal(body.count, 20, 'no duplicate row');
+      const row = body.entries.find((e: any) => e.domain === 'character.ai');
+      assert.ok(row);
+      assert.equal(row.sniff_score, clean.sniff_score, 'fixture row overridden by the live scan');
+      assert.notEqual(row.sniff_score, 48, 'the old fixture score is gone from the board');
 
-    const { body: improved } = await get('?sort=improved');
-    const imp = improved.entries.find((e: any) => e.domain === 'character.ai');
-    assert.ok(imp);
-    assert.equal(imp.delta, clean.sniff_score - 48, 'delta vs the seed chapter');
+      const { body: improved } = await get('?sort=improved');
+      const imp = improved.entries.find((e: any) => e.domain === 'character.ai');
+      assert.ok(imp);
+      assert.equal(imp.delta, clean.sniff_score - 48, 'delta vs the seed chapter');
+    } finally {
+      restore();
+    }
   });
 });

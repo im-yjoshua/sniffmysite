@@ -27,8 +27,8 @@ import { vaporRouter } from '../routes/vapor';
 const DOMAIN = 'stripe.com'; // board-listed seed specimen
 const UNKNOWN = 'totally-real-startup.xyz';
 
-function claimAndGetToken(domain: string): string {
-  const outcome = createClaim(domain);
+async function claimAndGetToken(domain: string): Promise<string> {
+  const outcome = await createClaim(domain);
   assert.equal(outcome.ok, true);
   return outcome.ok ? outcome.record.token : '';
 }
@@ -42,8 +42,8 @@ function dnsError(code: string): Error {
 describe('createClaim', () => {
   beforeEach(() => resetClaims());
 
-  it('mints a 48-hex-char token with the canonical TXT location', () => {
-    const outcome = createClaim(DOMAIN);
+  it('mints a 48-hex-char token with the canonical TXT location', async () => {
+    const outcome = await createClaim(DOMAIN);
     assert.equal(outcome.ok, true);
     if (!outcome.ok) return;
     assert.match(outcome.record.token, /^[0-9a-f]{48}$/);
@@ -60,30 +60,30 @@ describe('createClaim', () => {
     );
   });
 
-  it('normalizes domains (case, www.) before minting', () => {
-    const outcome = createClaim('WWW.Stripe.COM');
+  it('normalizes domains (case, www.) before minting', async () => {
+    const outcome = await createClaim('WWW.Stripe.COM');
     assert.equal(outcome.ok, true);
     if (!outcome.ok) return;
     assert.equal(outcome.record.domain, 'stripe.com');
   });
 
-  it('rejects garbage input with invalid_domain', () => {
+  it('rejects garbage input with invalid_domain', async () => {
     for (const bad of ['', 'not a domain', 'foo', 42, null, undefined]) {
-      const outcome = createClaim(bad);
+      const outcome = await createClaim(bad);
       assert.equal(outcome.ok, false);
       if (!outcome.ok) assert.equal(outcome.error, 'invalid_domain');
     }
   });
 
-  it('404s domains that are not on the board (seed-only claim scope)', () => {
-    const outcome = createClaim(UNKNOWN);
+  it('404s domains that are not on the board (seed-only claim scope)', async () => {
+    const outcome = await createClaim(UNKNOWN);
     assert.equal(outcome.ok, false);
     if (!outcome.ok) assert.equal(outcome.error, 'startup_not_found');
   });
 
-  it('is idempotent: re-claiming returns the SAME token', () => {
-    const first = createClaim(DOMAIN);
-    const second = createClaim(DOMAIN);
+  it('is idempotent: re-claiming returns the SAME token', async () => {
+    const first = await createClaim(DOMAIN);
+    const second = await createClaim(DOMAIN);
     assert.equal(first.ok && second.ok, true);
     if (first.ok && second.ok) {
       assert.equal(second.record.token, first.record.token);
@@ -104,7 +104,7 @@ describe('verifyClaim', () => {
   beforeEach(() => resetClaims());
 
   it('verifies when the exact record value is present', async () => {
-    const token = claimAndGetToken(DOMAIN);
+    const token = await claimAndGetToken(DOMAIN);
     const lookup: DnsLookup = async (host) => {
       assert.equal(host, `${VAPOR_TXT_HOST}.${DOMAIN}`);
       return [[txtRecordValue(token)]];
@@ -115,7 +115,7 @@ describe('verifyClaim', () => {
   });
 
   it('joins split TXT chunks before comparing', async () => {
-    const token = claimAndGetToken(DOMAIN);
+    const token = await claimAndGetToken(DOMAIN);
     const full = txtRecordValue(token);
     const lookup: DnsLookup = async () => [
       [full.slice(0, 20), full.slice(20)], // chunked record
@@ -125,7 +125,7 @@ describe('verifyClaim', () => {
   });
 
   it('is idempotent: a verified claim stays verified without another DNS hit', async () => {
-    const token = claimAndGetToken(DOMAIN);
+    const token = await claimAndGetToken(DOMAIN);
     let calls = 0;
     const okLookup: DnsLookup = async () => {
       calls += 1;
@@ -141,21 +141,21 @@ describe('verifyClaim', () => {
   });
 
   it('rejects a wrong token value (token_not_found)', async () => {
-    claimAndGetToken(DOMAIN);
+    await claimAndGetToken(DOMAIN);
     const lookup: DnsLookup = async () => [['sniffmysite-verification=wrong']];
     const outcome = await verifyClaim(DOMAIN, lookup);
     assert.deepEqual(outcome, { verified: false, reason: 'token_not_found' });
   });
 
   it('rejects a token smuggled inside noise (exact match only)', async () => {
-    const token = claimAndGetToken(DOMAIN);
+    const token = await claimAndGetToken(DOMAIN);
     const lookup: DnsLookup = async () => [[`xx${txtRecordValue(token)}xx`]];
     const outcome = await verifyClaim(DOMAIN, lookup);
     assert.deepEqual(outcome, { verified: false, reason: 'token_not_found' });
   });
 
   it('maps ENOTFOUND/ENODATA to token_not_found, never a crash', async () => {
-    claimAndGetToken(DOMAIN);
+    await claimAndGetToken(DOMAIN);
     for (const code of ['ENOTFOUND', 'ENODATA']) {
       const lookup: DnsLookup = async () => {
         throw dnsError(code);
@@ -166,7 +166,7 @@ describe('verifyClaim', () => {
   });
 
   it('maps unexpected DNS failures to dns_error', async () => {
-    claimAndGetToken(DOMAIN);
+    await claimAndGetToken(DOMAIN);
     const lookup: DnsLookup = async () => {
       throw dnsError('ETIMEOUT');
     };
@@ -175,7 +175,7 @@ describe('verifyClaim', () => {
   });
 
   it('rejects expired tokens', async () => {
-    const outcome = createClaim(DOMAIN);
+    const outcome = await createClaim(DOMAIN);
     assert.equal(outcome.ok, true);
     if (!outcome.ok) return;
     outcome.record.expiresAt = new Date(Date.now() - 1000).toISOString();
@@ -196,12 +196,12 @@ describe('verifyClaim', () => {
     });
   });
 
-  it('rotates the token after expiry', () => {
-    const first = createClaim(DOMAIN);
+  it('rotates the token after expiry', async () => {
+    const first = await createClaim(DOMAIN);
     assert.equal(first.ok, true);
     if (!first.ok) return;
     first.record.expiresAt = new Date(Date.now() - 1000).toISOString();
-    const second = createClaim(DOMAIN);
+    const second = await createClaim(DOMAIN);
     assert.equal(second.ok, true);
     if (second.ok) {
       assert.equal(second.isNew, true);

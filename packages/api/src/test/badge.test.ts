@@ -21,7 +21,9 @@ import {
 } from '../lib/badge';
 import { TIER_COLORS } from '../lib/vapor-card';
 import { getProfile } from '../lib/profile';
-import { recordBoardScan, _resetScanLog } from '../lib/scanlog';
+import { _resetScanLog } from '../lib/scanlog';
+import { recordBoardScan } from '../lib/boardStore';
+import { withFakeBoardScans } from './helpers/fakeBoardStore';
 import { scorePage } from '../lib/score';
 import { vaporRouter } from '../routes/vapor';
 
@@ -71,51 +73,53 @@ describe('badgeSvg', () => {
 describe('resolveBadge', () => {
   beforeEach(() => _resetScanLog());
 
-  it('matches the dossier source of truth for a seed host', () => {
-    const profile = getProfile('apple.com');
+  it('matches the dossier source of truth for a seed host', async () => {
+    const profile = await getProfile('apple.com');
     assert.ok(profile, 'seed host apple.com should have a profile');
-    const { status, svg } = resolveBadge('apple.com');
+    const { status, svg } = await resolveBadge('apple.com');
     assert.equal(status, 200);
     assert.ok(svg.includes(`>${profile.current.sniff_score}<`), 'badge score != dossier score');
     assert.ok(svg.includes(profile.current.tier), 'badge tier != dossier tier');
   });
 
-  it('follows a re-scan: badge always shows the latest score', () => {
-    const first = recordBoardScan({
-      finalUrl: 'https://freshbadge.test/',
-      result: scorePage(CLEAN_HTML, 'https://freshbadge.test/', new Date('2026-09-21T10:00:00.000Z')),
+  it('follows a re-scan: badge always shows the latest score', async () => {
+    await withFakeBoardScans([], async () => {
+      const first = await recordBoardScan({
+        finalUrl: 'https://freshbadge.test/',
+        result: scorePage(CLEAN_HTML, 'https://freshbadge.test/', new Date('2026-09-21T10:00:00.000Z')),
+      });
+      assert.ok(first);
+      const second = await recordBoardScan({
+        finalUrl: 'https://freshbadge.test/',
+        result: scorePage(CLEAN_HTML, 'https://freshbadge.test/', new Date('2026-09-21T11:00:00.000Z')),
+      });
+      assert.ok(second);
+      const { status, svg } = await resolveBadge('freshbadge.test');
+      assert.equal(status, 200);
+      assert.ok(
+        svg.includes(`>${second.sniff_score}<`),
+        'badge must show the latest scan, not the first',
+      );
     });
-    assert.ok(first);
-    const second = recordBoardScan({
-      finalUrl: 'https://freshbadge.test/',
-      result: scorePage(CLEAN_HTML, 'https://freshbadge.test/', new Date('2026-09-21T11:00:00.000Z')),
-    });
-    assert.ok(second);
-    const { status, svg } = resolveBadge('freshbadge.test');
-    assert.equal(status, 200);
-    assert.ok(
-      svg.includes(`>${second.sniff_score}<`),
-      'badge must show the latest scan, not the first',
-    );
   });
 
-  it('unknown slug → 404 SVG, "not sniffed yet", no fabricated score', () => {
-    const { status, svg } = resolveBadge('never-sniffed-xyz.test');
+  it('unknown slug → 404 SVG, "not sniffed yet", no fabricated score', async () => {
+    const { status, svg } = await resolveBadge('never-sniffed-xyz.test');
     assert.equal(status, 404);
     assert.ok(svg.includes('Not sniffed yet'), 'honest 404 copy missing');
     assert.ok(!/\/\d+\/100/.test(svg) && !svg.includes('/100'), '404 SVG must not carry a score');
     assert.equal(svg, notSniffedSvg());
   });
 
-  it('malformed slug → 400 SVG', () => {
-    const { status, svg } = resolveBadge('not a domain!!');
+  it('malformed slug → 400 SVG', async () => {
+    const { status, svg } = await resolveBadge('not a domain!!');
     assert.equal(status, 400);
     assert.ok(svg.includes('Bad address'));
   });
 
-  it('normalizes www. to the canonical slug', () => {
-    const plain = resolveBadge('apple.com');
-    const www = resolveBadge('www.apple.com');
+  it('normalizes www. to the canonical slug', async () => {
+    const plain = await resolveBadge('apple.com');
+    const www = await resolveBadge('www.apple.com');
     assert.equal(www.status, 200);
     assert.equal(www.svg, plain.svg);
   });
@@ -158,7 +162,7 @@ describe('GET /api/vapor/badge/:slug.svg', () => {
     assert.ok(r.contentType?.includes('image/svg+xml'), `content-type: ${r.contentType}`);
     assert.equal(r.cacheControl, 'public, max-age=3600');
     assert.equal(r.corp, 'cross-origin');
-    const profile = getProfile('apple.com');
+    const profile = await getProfile('apple.com');
     assert.ok(profile);
     assert.ok(r.body.includes(`>${profile.current.sniff_score}<`));
     assert.ok(r.body.includes(profile.current.tier));

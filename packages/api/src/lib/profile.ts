@@ -1,5 +1,5 @@
 import { getSeedResults } from './seed';
-import { getLiveHost } from './scanlog';
+import { getLiveHost } from './boardStore';
 import { normalizeSlug } from './slug';
 export { normalizeSlug } from './slug';
 import { sniffScoreFor } from './score';
@@ -9,11 +9,10 @@ import type { MetricScores, ScoreEvidence, ScanResult, Tier } from './score';
  * Startup profiles — Task 7 (§2.3 `/s/:slug`, §2.11).
  *
  * Slug = normalized domain (lowercase, no www.), deduped per §2.9.
- * Data comes from the live scan journal (lib/scanlog.ts) first — every
- * successful scan lands there — and falls back to the boot-scored seed
- * fixtures for hosts never re-scanned. When Supabase persistence lands
- * (replacing the journal's in-memory map), profiles read from the same
- * seam — this module only reshapes, never stores.
+ * Data comes from the live scan journal (lib/boardStore.ts, Supabase-backed)
+ * first — every successful scan lands there — and falls back to the
+ * boot-scored seed fixtures for hosts never re-scanned. This module only
+ * reshapes, never stores.
  */
 
 export interface HistoryEntry {
@@ -93,14 +92,14 @@ export function displayName(domain: string): string {
 }
 
 /** Profile for a normalized slug, or null when the slug isn't on the board. */
-export function getProfile(slug: string): StartupProfile | null {
+export async function getProfile(slug: string): Promise<StartupProfile | null> {
   const domain = normalizeSlug(slug);
   if (!domain) return null;
 
   // Live scans win. The board, the dossier, the share card, and the claim
   // gate all read the same journal, so one re-scan updates every surface at
   // once — the seed row below only serves hosts never re-scanned.
-  const liveHost = getLiveHost(domain);
+  const liveHost = await getLiveHost(domain);
   if (liveHost) return profileFromScans(domain, liveHost.scans);
 
   const hit = getSeedResults().find((e) => e.domain === domain);

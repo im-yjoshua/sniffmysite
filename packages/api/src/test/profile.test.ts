@@ -72,7 +72,7 @@ describe('displayName', () => {
 });
 
 describe('getProfile', () => {
-  it('resolves every seed domain with the full profile shape', () => {
+  it('resolves every seed domain with the full profile shape', async () => {
     const slugs = [
       'character.ai', 'copy.ai', 'vercel.com', 'synthesia.io', 'elevenlabs.io',
       'mistral.ai', 'runwayml.com', 'openai.com', 'huggingface.co', 'jasper.ai',
@@ -80,7 +80,7 @@ describe('getProfile', () => {
       'replit.com', 'anthropic.com', 'notion.so', 'apple.com', 'deepseek.com',
     ];
     for (const slug of slugs) {
-      const p = getProfile(slug);
+      const p = await getProfile(slug);
       assert.ok(p, `${slug} should resolve`);
       assert.equal(p!.slug, slug);
       assert.equal(p!.domain, slug);
@@ -100,13 +100,13 @@ describe('getProfile', () => {
     }
   });
 
-  it('returns null for valid-but-unknown and invalid slugs', () => {
-    assert.equal(getProfile('definitely-not-real.xyz'), null);
-    assert.equal(getProfile('!!!'), null);
+  it('returns null for valid-but-unknown and invalid slugs', async () => {
+    assert.equal(await getProfile('definitely-not-real.xyz'), null);
+    assert.equal(await getProfile('!!!'), null);
   });
 
-  it('normalizes before lookup', () => {
-    const p = getProfile('WWW.OPENAI.COM');
+  it('normalizes before lookup', async () => {
+    const p = await getProfile('WWW.OPENAI.COM');
     assert.ok(p);
     assert.equal(p!.slug, 'openai.com');
   });
