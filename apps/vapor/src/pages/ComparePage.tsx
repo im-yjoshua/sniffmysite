@@ -84,21 +84,25 @@ export function ComparePage() {
   const [sideA, setSideA] = useState<SideState>(IDLE);
   const [sideB, setSideB] = useState<SideState>(IDLE);
   const [searchParams] = useSearchParams();
-  const attempt = useRef(0);
+  // One attempt counter PER SIDE. The two duels run independent scans, so a
+  // result from side A must never be discarded just because side B started
+  // after it. A single shared counter made the earlier side's result look
+  // "stale" forever — one contender always stuck on "Sniffing...".
+  const attempt = useRef<Record<SideKey, number>>({ a: 0, b: 0 });
   const challengeAutoRan = useRef(false);
 
   const setSide = (key: SideKey, s: SideState) =>
     key === 'a' ? setSideA(s) : setSideB(s);
 
   const runSide = async (key: SideKey, url: string) => {
-    const id = ++attempt.current;
+    const id = ++attempt.current[key];
     setSide(key, { phase: 'loading' });
     try {
       const result = await scanUrl(url);
-      if (attempt.current !== id) return;
+      if (attempt.current[key] !== id) return;
       setSide(key, { phase: 'done', result });
     } catch (e) {
-      if (attempt.current !== id) return;
+      if (attempt.current[key] !== id) return;
       setSide(
         key,
         e instanceof ScanApiError && e.code === 'rate_limited'
