@@ -10,10 +10,12 @@ import { getSupabase } from './supabase';
  *     created, which is the only place a price is quoted.
  *   - A paid bid takes the throne IMMEDIATELY, dethroning the holder.
  *     Otherwise the holder keeps it until expires_at (3 days from payment).
- *   - Fulfillment is last-paid-wins: a stale checkout (created before a
- *     dethroning) still takes the throne at its quoted price — the buyer
- *     paid what we asked, and the "+$3" rule is a quoting rule, not a
- *     fulfillment ambush.
+ *   - Stale quotes are rejected, not honored: the +$3 rule is enforced at
+ *     checkout creation AND re-checked inside the atomic claim against
+ *     the live minimum. A quote that fell below it while the buyer was
+ *     paying is recorded as 'stale', never installed, and refunded in
+ *     full automatically (reconciled with Polar first, so redeliveries
+ *     can't double-refund). Money is never kept for nothing.
  *   - A refund of the holding order vacates the throne; the price resets
  *     to the $19 floor.
  *   - Money buys the spotlight only. Scores and rankings are never
@@ -54,7 +56,12 @@ export interface NewThroneBid {
   order_id: string;
   url: string;
   domain: string;
+  /** What the buyer actually paid (cents). */
   price_cents: number;
+  /** What we quoted at checkout creation (cents). The staleness check
+   *  runs against the quote: the +$3 rule applied when they were quoted,
+   *  not when Polar settled. */
+  quoted_cents: number;
   score: number;
   tier: string;
   roast: unknown;
@@ -75,8 +82,16 @@ export interface ThroneStore {
   /**
    * Install a new holder, dethroning the current one. Idempotent on
    * order_id — returns 'duplicate' instead of double-fulfilling.
+   * Returns 'stale' when the quoted price fell below the live minimum
+   * inside the transaction: the bid is recorded as stale, never
+   * installed, and the caller refunds it.
    */
-  claim(input: NewThroneBid, now?: Date): Promise<'installed' | 'duplicate'>;
+  claim(input: NewThroneBid, now?: Date): Promise<'installed' | 'duplicate' | 'stale'>;
+  /**
+   * Mark a stale bid refunded after the Polar refund reconciled.
+   * Only transitions 'stale' → 'stale_refunded'.
+   */
+  confirmStaleRefund(orderId: string): Promise<void>;
   /**
    * Vacate the throne when the holding order is refunded. Returns true
    * when the refunded order actually held the throne.
@@ -207,6 +222,7 @@ export function supabaseThroneStore(): ThroneStore {
             p_url: input.url,
             p_domain: input.domain,
             p_price_cents: input.price_cents,
+            p_quoted_cents: input.quoted_cents,
             p_score: input.score,
             p_tier: input.tier,
             p_roast: input.roast,
@@ -215,10 +231,19 @@ export function supabaseThroneStore(): ThroneStore {
             p_expires_at: expiresAt.toISOString(),
           });
         if (error) throw error;
-        if (data !== 'installed' && data !== 'duplicate') {
+        if (data !== 'installed' && data !== 'duplicate' && data !== 'stale') {
           throw new Error(`unexpected claim_throne result: ${String(data)}`);
         }
         return data;
+      }),
+
+    confirmStaleRefund: (orderId: string) =>
+      mutex(async () => {
+        const { error } = await bids()
+          .update({ status: 'stale_refunded' })
+          .eq('order_id', orderId)
+          .eq('status', 'stale');
+        if (error) throw error;
       }),
 
     vacateOnRefund: (orderId: string) =>
@@ -230,9 +255,13 @@ export function supabaseThroneStore(): ThroneStore {
           .maybeSingle();
         if (bidError) throw bidError;
         if (!bid) return false;
-        await bids()
-          .update({ status: 'refunded' })
-          .eq('order_id', orderId);
+        // A stale bid refunded by the stale-bid flow keeps its audit
+        // trail ('stale_refunded'); it never held the throne anyway.
+        if ((bid as { status: string }).status !== 'stale_refunded') {
+          await bids()
+            .update({ status: 'refunded' })
+            .eq('order_id', orderId);
+        }
 
         const current = await readState(now);
         if (current.holder?.order_id === orderId) {
@@ -299,6 +328,18 @@ export function memoryThroneStore(): ThroneStore {
       mutex(async () => {
         if (bidRows.has(input.order_id)) return 'duplicate';
         const expiresAt = new Date(now.getTime() + THRONE_HOLD_MS).toISOString();
+        // Mirror of the SQL staleness check: the live minimum at this
+        // moment — the holder's price + $3 while they hold it, else the
+        // $19 floor. A stale quote is recorded, never installed.
+        const holderLive =
+          holder !== null && Date.parse(holder.expires_at) > now.getTime();
+        const liveMin = holderLive
+          ? (holder as ThroneHolder).price_cents + THRONE_INCREMENT_CENTS
+          : THRONE_FLOOR_CENTS;
+        if (input.quoted_cents < liveMin) {
+          bidRows.set(input.order_id, { status: 'stale' });
+          return 'stale';
+        }
         bidRows.set(input.order_id, { status: 'holding' });
         if (holder) {
           const prev = bidRows.get(holder.order_id);
@@ -317,11 +358,15 @@ export function memoryThroneStore(): ThroneStore {
         };
         return 'installed';
       }),
+    async confirmStaleRefund(orderId: string) {
+      const row = bidRows.get(orderId);
+      if (row && row.status === 'stale') row.status = 'stale_refunded';
+    },
     vacateOnRefund: (orderId: string) =>
       mutex(async () => {
         const row = bidRows.get(orderId);
         if (!row) return false;
-        row.status = 'refunded';
+        if (row.status !== 'stale_refunded') row.status = 'refunded';
         if (holder?.order_id === orderId) {
           holder = null;
           return true;
@@ -346,9 +391,11 @@ import {
   type ParsedPolarEvent,
 } from './polar';
 import type { PriorityScanFn } from './featured';
+import type { PolarRefundClient } from './polarRefund';
 
 export type ThroneFulfillOutcome =
   | { handled: true; action: 'fulfilled' | 'duplicate'; orderId: string; slug: string | null }
+  | { handled: true; action: 'stale_refunded'; orderId: string; refunded_cents: number }
   | { handled: false; reason: string; retryable: boolean };
 
 export type ThroneRefundOutcome =
@@ -361,6 +408,26 @@ function slugOf(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * What we quoted the buyer at checkout creation (cents) — the number
+ * the +$3 rule was applied to. Read from the metadata stamp first; falls
+ * back to the settled total, then the floor. Never NaN, never negative.
+ */
+export function extractQuotedCents(order: Record<string, unknown>): number {
+  const candidates = [
+    (order.metadata as Record<string, unknown> | undefined)?.throne_price_cents,
+    order.total_amount,
+    order.amount,
+  ];
+  for (const c of candidates) {
+    const n = typeof c === 'string' ? Number(c) : c;
+    if (typeof n === 'number' && Number.isFinite(n) && n > 0) {
+      return Math.round(n);
+    }
+  }
+  return THRONE_FLOOR_CENTS;
 }
 
 /**
@@ -386,13 +453,16 @@ export function extractOrderCents(order: Record<string, unknown>): number {
 
 /**
  * order.paid for a throne bid: validate the site URL → run the priority
- * scan (identical v2 engine — payment never changes the score) → install
- * the new holder, dethroning whoever holds it. Idempotent on the Polar
- * order id.
+ * scan (identical v2 engine — payment never changes the score) → claim
+ * the throne atomically. A claim whose quote went stale (the throne
+ * moved past it while the buyer was paying) is never installed: the bid
+ * is recorded as stale and refunded in full via Polar, reconciling first
+ * so a redelivered webhook can't double-refund. Idempotent on the Polar
+ * order id throughout.
  */
 export async function applyThroneOrderPaid(
   event: Extract<ParsedPolarEvent, { ok: true }>,
-  deps: { store: ThroneStore; scan: PriorityScanFn },
+  deps: { store: ThroneStore; scan: PriorityScanFn; refund: PolarRefundClient },
   now: Date = new Date(),
 ): Promise<ThroneFulfillOutcome> {
   const { orderId, order } = event;
@@ -401,8 +471,13 @@ export async function applyThroneOrderPaid(
   try {
     store = deps.store;
     const existing = await store.findBid(orderId);
-    if (existing) {
+    if (existing && existing.status !== 'stale') {
       return { handled: true, action: 'duplicate', orderId, slug: null };
+    }
+    // A redelivered webhook for a bid already judged stale: reconcile the
+    // refund instead of re-deciding.
+    if (existing?.status === 'stale') {
+      return refundStaleBid(store, deps.refund, orderId, extractOrderCents(order));
     }
   } catch {
     return { handled: false, reason: 'store_unavailable', retryable: true };
@@ -421,6 +496,7 @@ export async function applyThroneOrderPaid(
   }
 
   const priceCents = extractOrderCents(order);
+  const quotedCents = extractQuotedCents(order);
   const slug = slugOf(scan.finalUrl);
   const roast = {
     verdict: scan.verdict,
@@ -435,6 +511,7 @@ export async function applyThroneOrderPaid(
         url: scan.finalUrl,
         domain: slug ?? scan.finalUrl,
         price_cents: priceCents,
+        quoted_cents: quotedCents,
         score: scan.sniff_score,
         tier: scan.tier,
         roast,
@@ -442,6 +519,9 @@ export async function applyThroneOrderPaid(
       },
       now,
     );
+    if (outcome === 'stale') {
+      return refundStaleBid(store, deps.refund, orderId, priceCents);
+    }
     return {
       handled: true,
       action: outcome === 'duplicate' ? 'duplicate' : 'fulfilled',
@@ -450,6 +530,28 @@ export async function applyThroneOrderPaid(
     };
   } catch {
     return { handled: false, reason: 'store_unavailable', retryable: true };
+  }
+}
+
+/**
+ * Refund a stale throne bid in full. Reconciles with Polar first: when a
+ * refund is already pending/succeeded there, we just mark our row — so a
+ * redelivered webhook (or a crash between refund and mark) can never
+ * double-refund. Failures are retryable: Polar redelivers the webhook and
+ * the whole path runs again idempotently.
+ */
+async function refundStaleBid(
+  store: ThroneStore,
+  refund: PolarRefundClient,
+  orderId: string,
+  priceCents: number,
+): Promise<ThroneFulfillOutcome> {
+  try {
+    await refund.refundOrder(orderId, priceCents);
+    await store.confirmStaleRefund(orderId);
+    return { handled: true, action: 'stale_refunded', orderId, refunded_cents: priceCents };
+  } catch {
+    return { handled: false, reason: 'refund_failed', retryable: true };
   }
 }
 

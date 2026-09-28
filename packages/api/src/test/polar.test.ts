@@ -206,3 +206,95 @@ describe('extractBuyerEmail', () => {
     assert.equal(extractBuyerEmail({ customer: { email: 'nope' } }), null);
   });
 });
+
+describe('polarRefundClient (stale throne bids)', () => {
+  function stubFetch(routes: Record<string, unknown>) {
+    const calls: string[] = [];
+    const fn = (async (url: string, init?: { method?: string; body?: string }) => {
+      const method = init?.method ?? 'GET';
+      calls.push(`${method} ${url}`);
+      const body = routes[`${method} ${url.split('?')[0]}`] ?? routes[method];
+      if (typeof body === 'function') return body(url, init);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+      };
+    }) as unknown as typeof fetch;
+    return { fn, calls };
+  }
+
+  it('skips creation when Polar already holds a refund (no double-refund)', async () => {
+    const { polarRefundClient } = await import('../lib/polarRefund.js');
+    process.env.POLAR_ACCESS_TOKEN = 'test_token';
+    const { fn, calls } = stubFetch({
+      GET: { items: [{ id: 're_1', status: 'succeeded' }] },
+    });
+    await polarRefundClient(fn).refundOrder('ord_stale', 2200);
+    assert.ok(calls.some((c) => c.startsWith('GET ')));
+    assert.ok(!calls.some((c) => c.startsWith('POST ')));
+    delete process.env.POLAR_ACCESS_TOKEN;
+  });
+
+  it('creates a full refund with reason "other" when none exists', async () => {
+    const { polarRefundClient } = await import('../lib/polarRefund.js');
+    process.env.POLAR_ACCESS_TOKEN = 'test_token';
+    let posted: Record<string, unknown> | null = null;
+    const { fn } = stubFetch({
+      GET: { items: [] },
+      POST: (_url: string, init: { body?: string }) => {
+        posted = JSON.parse(init.body ?? '{}');
+        return { ok: true, status: 201, json: async () => ({ id: 're_2' }) };
+      },
+    });
+    await polarRefundClient(fn).refundOrder('ord_stale', 2200);
+    assert.deepEqual(posted, {
+      order_id: 'ord_stale',
+      amount: 2200,
+      reason: 'other',
+      comment:
+        'Throne bid went stale: the throne moved past the quoted price while the buyer was paying. Throne not granted — full refund.',
+    });
+    delete process.env.POLAR_ACCESS_TOKEN;
+  });
+
+  it('throws a not-configured error without a token', async () => {
+    const {
+      polarRefundClient,
+      PolarRefundNotConfiguredError,
+    } = await import('../lib/polarRefund.js');
+    delete process.env.POLAR_ACCESS_TOKEN;
+    await assert.rejects(
+      () => polarRefundClient(stubFetch({}).fn).refundOrder('ord_x', 100),
+      PolarRefundNotConfiguredError,
+    );
+  });
+});
+
+describe('createThroneCheckout', () => {
+  it('sends discount codes OFF for throne checkouts', async () => {
+    const { createThroneCheckout } = await import('../lib/polarCheckout.js');
+    process.env.POLAR_ACCESS_TOKEN = 'test_token';
+    process.env.POLAR_THRONE_PRODUCT_ID = 'prod_throne';
+    let posted: Record<string, unknown> | null = null;
+    const fn = (async (_url: string, init: { body?: string }) => {
+      posted = JSON.parse(init.body ?? '{}');
+      return {
+        ok: true,
+        status: 201,
+        json: async () => ({ id: 'ch_1', url: 'https://polar.sh/checkout/ch_1' }),
+      };
+    }) as unknown as typeof fetch;
+    const out = await createThroneCheckout('https://example.com/', 2200, fn);
+    assert.equal(out.price_cents, 2200);
+    assert.equal(out.checkout_id, 'ch_1');
+    assert.equal((posted as unknown as Record<string, unknown>)?.allow_discount_codes, false);
+    assert.deepEqual(
+      (posted as unknown as Record<string, { throne_price_cents: string }>)?.metadata
+        ?.throne_price_cents,
+      '2200',
+    );
+    delete process.env.POLAR_ACCESS_TOKEN;
+    delete process.env.POLAR_THRONE_PRODUCT_ID;
+  });
+});

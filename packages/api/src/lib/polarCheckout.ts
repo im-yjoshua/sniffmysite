@@ -14,7 +14,12 @@
  * it before any money moves) and passed through `metadata.website_url` —
  * the webhook's extractWebsiteUrl() reads it from there. `metadata.throne_bid`
  * marks the order so the webhook takes the throne path instead of the
- * legacy featured path.
+ * legacy featured path. `metadata.throne_price_cents` stamps the quote the
+ * +$3 rule produced — the stale-bid check re-validates it at payment time.
+ *
+ * Discount codes are OFF for throne checkouts: on an auction a discount
+ * is a loophole (a 100%-off code would take the throne for free), and the
+ * staleness check compares the real quote.
  *
  * Required env: POLAR_ACCESS_TOKEN (scope checkouts:write — Joshua creates
  * this in the Polar dashboard) and POLAR_THRONE_PRODUCT_ID (the existing
@@ -88,7 +93,7 @@ export async function createThroneCheckout(
           website_url: url,
           throne_price_cents: String(priceCents),
         },
-        allow_discount_codes: true,
+        allow_discount_codes: false,
       }),
     });
   } catch {

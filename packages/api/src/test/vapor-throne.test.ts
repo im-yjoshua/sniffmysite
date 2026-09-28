@@ -12,16 +12,34 @@ import {
   type NewThroneBid,
 } from '../lib/throne.js';
 
-function bid(orderId: string, priceCents: number): NewThroneBid {
+function bid(orderId: string, priceCents: number, quotedCents = priceCents): NewThroneBid {
   return {
     order_id: orderId,
     url: 'https://example.com/',
     domain: 'example.com',
     price_cents: priceCents,
+    quoted_cents: quotedCents,
     score: 66,
     tier: 'RECRUIT',
     roast: { verdict: 'x', tier: 'RECRUIT', score: 66, scanned_at: 't' },
     buyer_email: null,
+  };
+}
+
+/** Stub refund client: records calls, simulates Polar reconciliation. */
+function fakeRefund(opts?: { fail?: boolean; already?: boolean }) {
+  const calls: Array<{ orderId: string; amountCents: number }> = [];
+  let refunded = opts?.already ?? false;
+  return {
+    calls,
+    client: {
+      alreadyRefunded: async (_orderId: string) => refunded,
+      refundOrder: async (orderId: string, amountCents: number) => {
+        if (opts?.fail) throw new Error('polar exploded');
+        calls.push({ orderId, amountCents });
+        refunded = true;
+      },
+    },
   };
 }
 
@@ -141,7 +159,7 @@ describe('applyThroneOrderPaid', () => {
         metadata: { throne_bid: 'true', website_url: 'example.com' },
         total_amount: 1900,
       }),
-      { store, scan: async () => fakeScan() },
+      { store, scan: async () => fakeScan(), refund: fakeRefund().client },
     );
     assert.equal(outcome.handled, true);
     if (outcome.handled) assert.equal(outcome.action, 'fulfilled');
@@ -156,6 +174,7 @@ describe('applyThroneOrderPaid', () => {
     const deps = {
       store,
       scan: async () => fakeScan(),
+      refund: fakeRefund().client,
     };
     const event = paidEvent('ord_1', {
       metadata: { throne_bid: 'true', website_url: 'example.com' },
@@ -171,7 +190,7 @@ describe('applyThroneOrderPaid', () => {
     const store = memoryThroneStore();
     const missing = await applyThroneOrderPaid(
       paidEvent('ord_x', { metadata: { throne_bid: 'true' } }),
-      { store, scan: async () => fakeScan() },
+      { store, scan: async () => fakeScan(), refund: fakeRefund().client },
     );
     assert.deepEqual(missing, {
       handled: false,
@@ -186,6 +205,7 @@ describe('applyThroneOrderPaid', () => {
         scan: async () => {
           throw new Error('fetch blew up');
         },
+        refund: fakeRefund().client,
       },
     );
     assert.deepEqual(failed, {
@@ -204,7 +224,7 @@ describe('applyThroneOrderRefunded', () => {
         metadata: { throne_bid: 'true', website_url: 'example.com' },
         total_amount: 1900,
       }),
-      { store, scan: async () => fakeScan() },
+      { store, scan: async () => fakeScan(), refund: fakeRefund().client },
     );
     const outcome = await applyThroneOrderRefunded('ord_1', { store });
     assert.deepEqual(outcome, { handled: true, action: 'vacated', orderId: 'ord_1' });
@@ -248,6 +268,7 @@ describe('supabaseThroneStore.claim via claim_throne RPC', () => {
         assert.equal(outcome, 'installed');
         assert.equal(seen.params?.p_order_id, 'ord_9');
         assert.equal(seen.params?.p_price_cents, 2200);
+        assert.equal(seen.params?.p_quoted_cents, 2200);
         assert.equal(seen.params?.p_domain, 'example.com');
         assert.ok(typeof seen.params?.p_now === 'string');
         assert.ok(typeof seen.params?.p_expires_at === 'string');
@@ -277,6 +298,133 @@ describe('supabaseThroneStore.claim via claim_throne RPC', () => {
       async () => {
         await assert.rejects(() => supabaseThroneStore().claim(bid('ord_x', 1900)));
       },
+    );
+  });
+});
+
+describe('stale throne bids', () => {
+  it("memory store: a quote below the live minimum returns 'stale' and never installs", async () => {
+    const store = memoryThroneStore();
+    assert.equal(await store.claim(bid('ord_hold', 2500)), 'installed');
+    // Throne held at $25 → live minimum $28. A $22 quote is stale.
+    assert.equal(await store.claim(bid('ord_stale', 2200, 2200)), 'stale');
+    const s = await store.getStatus();
+    assert.equal(s.holder?.order_id, 'ord_hold');
+    assert.equal(s.min_bid_cents, 2500 + THRONE_INCREMENT_CENTS);
+    assert.deepEqual(await store.findBid('ord_stale'), {
+      order_id: 'ord_stale',
+      status: 'stale',
+    });
+  });
+
+  it('memory store: a quote exactly at the live minimum still installs', async () => {
+    const store = memoryThroneStore();
+    assert.equal(await store.claim(bid('ord_hold', 1900)), 'installed');
+    assert.equal(await store.claim(bid('ord_new', 2200, 2200)), 'installed');
+    assert.equal((await store.getStatus()).holder?.order_id, 'ord_new');
+  });
+
+  it('memory store: an expired holder resets the minimum to the floor', async () => {
+    const store = memoryThroneStore();
+    const past = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
+    assert.equal(await store.claim(bid('ord_old', 5000), past), 'installed');
+    // Holder lapsed 4 days ago → floor quote is fresh, not stale.
+    assert.equal(await store.claim(bid('ord_new', 1900, 1900)), 'installed');
+    assert.equal((await store.getStatus()).holder?.order_id, 'ord_new');
+  });
+
+  it('applyThroneOrderPaid refunds a stale bid in full and keeps the holder', async () => {
+    const store = memoryThroneStore();
+    await store.claim(bid('ord_hold', 2500));
+    const fr = fakeRefund();
+    const outcome = await applyThroneOrderPaid(
+      paidEvent('ord_stale', {
+        metadata: {
+          throne_bid: 'true',
+          website_url: 'example.com',
+          throne_price_cents: '2200',
+        },
+        total_amount: 2200,
+      }),
+      { store, scan: async () => fakeScan(), refund: fr.client },
+    );
+    assert.deepEqual(outcome, {
+      handled: true,
+      action: 'stale_refunded',
+      orderId: 'ord_stale',
+      refunded_cents: 2200,
+    });
+    assert.deepEqual(fr.calls, [{ orderId: 'ord_stale', amountCents: 2200 }]);
+    assert.equal((await store.getStatus()).holder?.order_id, 'ord_hold');
+    assert.deepEqual(await store.findBid('ord_stale'), {
+      order_id: 'ord_stale',
+      status: 'stale_refunded',
+    });
+  });
+
+  it('a redelivered stale webhook reconciles instead of double-refunding', async () => {
+    const store = memoryThroneStore();
+    await store.claim(bid('ord_hold', 2500));
+    const fr = fakeRefund();
+    const event = paidEvent('ord_stale', {
+      metadata: {
+        throne_bid: 'true',
+        website_url: 'example.com',
+        throne_price_cents: '2200',
+      },
+      total_amount: 2200,
+    });
+    const deps = { store, scan: async () => fakeScan(), refund: fr.client };
+    await applyThroneOrderPaid(event, deps);
+    // Second delivery: Polar already has the refund → no second call.
+    const again = await applyThroneOrderPaid(event, deps);
+    assert.equal(fr.calls.length, 1);
+    if (again.handled) assert.equal(again.action, 'duplicate');
+  });
+
+  it('a failed refund is retryable (Polar redelivers)', async () => {
+    const store = memoryThroneStore();
+    await store.claim(bid('ord_hold', 2500));
+    const fr = fakeRefund({ fail: true });
+    const outcome = await applyThroneOrderPaid(
+      paidEvent('ord_stale', {
+        metadata: {
+          throne_bid: 'true',
+          website_url: 'example.com',
+          throne_price_cents: '2200',
+        },
+        total_amount: 2200,
+      }),
+      { store, scan: async () => fakeScan(), refund: fr.client },
+    );
+    assert.deepEqual(outcome, {
+      handled: false,
+      reason: 'refund_failed',
+      retryable: true,
+    });
+    // Still marked stale — the redelivery will reconcile the refund.
+    assert.deepEqual(await store.findBid('ord_stale'), {
+      order_id: 'ord_stale',
+      status: 'stale',
+    });
+  });
+});
+
+describe('extractQuotedCents', () => {
+  it('prefers the metadata quote stamp, then the settled total, then the floor', async () => {
+    const { extractQuotedCents } = await import('../lib/throne.js');
+    assert.equal(
+      extractQuotedCents({
+        metadata: { throne_price_cents: '2200' },
+        total_amount: 2200,
+      }),
+      2200,
+    );
+    assert.equal(extractQuotedCents({ total_amount: 2500 }), 2500);
+    assert.equal(extractQuotedCents({}), THRONE_FLOOR_CENTS);
+    assert.equal(
+      extractQuotedCents({ metadata: { throne_price_cents: 'garbage' } }),
+      THRONE_FLOOR_CENTS,
     );
   });
 });

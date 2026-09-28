@@ -60,6 +60,7 @@ import {
   PolarNotConfiguredError,
   PolarCheckoutError,
 } from '../lib/polarCheckout';
+import { polarRefundClient } from '../lib/polarRefund';
 
 /**
  * VaporRank routes (§2.11).
@@ -820,7 +821,11 @@ vaporRouter.post(
         const store = supabaseThroneStore();
         outcome =
           parsed.type === 'order.paid'
-            ? await applyThroneOrderPaid(parsed, { store, scan: runPriorityScan })
+            ? await applyThroneOrderPaid(parsed, {
+                store,
+                scan: runPriorityScan,
+                refund: polarRefundClient(),
+              })
             : await applyThroneOrderRefunded(parsed.orderId, { store });
       } else {
         // Legacy fixed-price Featured Roast checkout link (Phase A).
