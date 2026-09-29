@@ -84,9 +84,9 @@ describe('generateOneLiner', () => {
 
   it('returns null when the spend cap is hit', async () => {
     __testSetCaps({ perMinute: 2, perDay: 100 });
-    const opts = { fetchImpl: okFetch('Funny line.') };
-    assert.equal(await generateOneLiner({ ...INPUT, snapshotHash: 'h1' }, opts), 'Funny line.');
-    assert.equal(await generateOneLiner({ ...INPUT, snapshotHash: 'h2' }, opts), 'Funny line.');
+    const opts = { fetchImpl: okFetch('Funny line, indeed.') };
+    assert.equal(await generateOneLiner({ ...INPUT, snapshotHash: 'h1' }, opts), 'Funny line, indeed.');
+    assert.equal(await generateOneLiner({ ...INPUT, snapshotHash: 'h2' }, opts), 'Funny line, indeed.');
     assert.equal(await generateOneLiner({ ...INPUT, snapshotHash: 'h3' }, opts), null);
   });
 
@@ -95,12 +95,12 @@ describe('generateOneLiner', () => {
     const counting: GenerateOpts['fetchImpl'] = (async () => {
       called += 1;
       return new Response(
-        JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Cached wit.' }] } }] }),
+        JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Cached wit, ready.' }] } }] }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
       );
     }) as GenerateOpts['fetchImpl'];
-    assert.equal(await generateOneLiner(INPUT, { fetchImpl: counting }), 'Cached wit.');
-    assert.equal(await generateOneLiner(INPUT, { fetchImpl: counting }), 'Cached wit.');
+    assert.equal(await generateOneLiner(INPUT, { fetchImpl: counting }), 'Cached wit, ready.');
+    assert.equal(await generateOneLiner(INPUT, { fetchImpl: counting }), 'Cached wit, ready.');
     assert.equal(called, 1);
   });
 
@@ -117,5 +117,21 @@ describe('generateOneLiner', () => {
       await generateOneLiner({ ...INPUT, snapshotHash: 'long' }, { fetchImpl: okFetch('x'.repeat(500)) }),
       null,
     );
+  });
+
+  it('drops model fragments ("GL") — a dud must never be cached as the line', async () => {
+    let called = 0;
+    const counting: GenerateOpts['fetchImpl'] = (async () => {
+      called += 1;
+      return new Response(
+        JSON.stringify({ candidates: [{ content: { parts: [{ text: 'GL' }] } }] }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }) as GenerateOpts['fetchImpl'];
+    const opts = { fetchImpl: counting };
+    assert.equal(await generateOneLiner(INPUT, opts), null);
+    // Not cached: the next scan retries the model instead of serving the dud.
+    assert.equal(await generateOneLiner(INPUT, opts), null);
+    assert.equal(called, 2);
   });
 });

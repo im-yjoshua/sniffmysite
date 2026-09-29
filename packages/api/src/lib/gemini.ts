@@ -88,13 +88,21 @@ function buildPrompt(input: OneLinerInput): string {
   ].join('\n');
 }
 
-/** Scrub the model's raw text into one safe line, or null if unusable. */
+/**
+ * Scrub the model's raw text into one safe line, or null if unusable.
+ *
+ * The floor matters: the model occasionally emits a fragment ("GL") instead
+ * of a line. A real roast line is a sentence — anything under a dozen chars
+ * is a misfire, and accepting it would cache the dud for every re-scan.
+ */
+const MIN_LINE_CHARS = 12;
+
 function cleanLine(raw: string): string | null {
   let line = raw.split('\n')[0].trim();
   // Strip wrapping quotes the model sometimes adds despite instructions.
   line = line.replace(/^["'“”]+|["'“”]+$/g, '').trim();
   line = line.replace(/\s+/g, ' ');
-  if (line.length === 0 || line.length > 200) return null;
+  if (line.length < MIN_LINE_CHARS || line.length > 200) return null;
   if (DENY_RE.test(line)) return null;
   return line;
 }
@@ -115,7 +123,12 @@ export async function generateOneLiner(
   const cached = cache.get(cacheKey);
   if (cached) return cached;
 
-  if (overCap()) return null;
+  if (overCap()) {
+    // Loud about it: an exhausted budget is the #1 reason the heckler goes
+    // quiet, and the Render logs are the only place the owner can see it.
+    console.warn('[gemini] one-liner skipped: spend cap reached');
+    return null;
+  }
 
   const fetchImpl = opts.fetchImpl ?? globalThis.fetch.bind(globalThis);
   const controller = new AbortController();
@@ -136,16 +149,27 @@ export async function generateOneLiner(
       }),
       signal: controller.signal,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Status only — never the key, prompt, or body. A 429 here almost
+      // always means the key's daily quota is spent.
+      console.warn(`[gemini] one-liner HTTP ${res.status}`);
+      return null;
+    }
     const data = (await res.json()) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
     };
     const text = data.candidates?.[0]?.content?.parts
       ?.map((p) => p.text ?? '')
       .join('');
-    if (!text) return null;
+    if (!text) {
+      console.warn('[gemini] one-liner: empty candidates');
+      return null;
+    }
     const line = cleanLine(text);
-    if (!line) return null;
+    if (!line) {
+      console.warn('[gemini] one-liner rejected (too short/long or filtered)');
+      return null;
+    }
     cache.set(cacheKey, line);
     if (cache.size > CACHE_MAX) {
       const oldest = cache.keys().next();
