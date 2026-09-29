@@ -36,9 +36,10 @@ Kept below for reference if the plan ever changes.
 
 ### A2. Deploy the frontend (static files)
 1. Rebuild with the real API URL (Vite bakes env in at build time):
-   `VITE_API_URL=https://<api-url> npm run build --workspace=@vaporrank/vapor`
+   `VITE_API_URL=https://sniffmysite-api.onrender.com VITE_TURNSTILE_SITE_KEY=0x4AAAAAAFJYhdz4lGROyX3q npm run build --workspace=@vaporrank/vapor`
    (Keep the existing `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` — the anon
-   key is public-safe by design.)
+   key is public-safe by design, and so is the Turnstile site key: both ship
+   in the client JS. Only the Turnstile *secret* stays server-side.)
 2. Upload `apps/vapor/dist/*` to `public_html` for sniffmysite.lol
    (or hPanel → Websites → PHP/HTML website → upload).
 3. SPA fallback: add `.htaccess` rewrite so `/s/<slug>` and other routes don't 404:
