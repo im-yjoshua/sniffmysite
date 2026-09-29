@@ -1,16 +1,22 @@
 import type { TierLabel } from '../../lib/tiers';
-import { ThumbGlyph } from './ThumbSeal';
+import { ThumbGlyph, waxEdge } from './ThumbSeal';
 import { Laurel } from './Laurel';
 
 /**
- * TierMark — the five small seals, one per tier. Simplified variants at
- * small size for leaderboard rows, the live feed, share cards.
+ * TierMark — the five seals, one per tier. Small-size variants for
+ * leaderboard rows, the live pulse, share cards, battle contenders.
  *
- *   LAUREATE   — laurel wreath (gold, victory)
- *   GLADIATOR  — thumb up (a proven fighter)
- *   RECRUIT    — hollow ring (unproven, the wax not yet pressed)
- *   JESTER     — thumb sideways (the crowd laughs, not with you)
- *   LION FOOD  — thumb down (thrown to the lions)
+ * The arena stamps every judgment in wax: all four non-laurel tiers share
+ * the same organic wax-edge ring, each with its own interior —
+ *
+ *   LAUREATE   — laurel wreath (gold, victory) — UNTOUCHED, the prize
+ *   GLADIATOR  — wax seal, thumb up (a proven fighter, stamped deep)
+ *   RECRUIT    — wax ring, unpressed center (the wax is poured, the stamp
+ *                hasn't landed yet)
+ *   JESTER     — wax seal, thumb sideways (the crowd laughs, not with you)
+ *   LION FOOD  — wax seal, thumb down, CRACKED (condemned)
+ *
+ * Square 96×96 box throughout, so the mark never stretches.
  */
 const COLORS: Record<TierLabel, string> = {
   LAUREATE: 'var(--color-seal-laureate)',
@@ -19,6 +25,36 @@ const COLORS: Record<TierLabel, string> = {
   JESTER: 'var(--color-seal-jester)',
   'LION FOOD': 'var(--color-seal-lionfood)',
 };
+
+const WAX_RING = waxEdge(48, 48, 40);
+
+function WaxRing({ color }: { color: string }) {
+  return (
+    <polygon
+      points={WAX_RING}
+      fill="none"
+      stroke={color}
+      strokeWidth={5}
+      strokeLinejoin="round"
+    />
+  );
+}
+
+/** The condemnation crack: a jagged split running edge-to-edge through the
+ * LION FOOD seal — bold enough to read at 28px, where it merges with the
+ * wax ring and reads as a shattered stamp. */
+function Crack({ color }: { color: string }) {
+  return (
+    <path
+      d="M26 14 L44 36 L36 52 L56 68 L46 88"
+      fill="none"
+      stroke={color}
+      strokeWidth={5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  );
+}
 
 export function TierMark({
   tier,
@@ -51,21 +87,15 @@ export function TierMark({
       <svg
         width={size}
         height={size}
-        viewBox="0 0 24 24"
+        viewBox="0 0 96 96"
         className={className}
         role="img"
         aria-label={label}
       >
         <title>{label}</title>
-        <circle
-          cx={12}
-          cy={12}
-          r={8}
-          fill="none"
-          stroke={color}
-          strokeWidth={2.5}
-        />
-        <circle cx={12} cy={12} r={2.4} fill={color} />
+        <WaxRing color={color} />
+        {/* the wax is poured — no stamp yet */}
+        <circle cx={48} cy={48} r={7} fill={color} />
       </svg>
     );
   }
@@ -76,13 +106,15 @@ export function TierMark({
     <svg
       width={size}
       height={size}
-      viewBox="18 8 60 84"
+      viewBox="0 0 96 96"
       className={className}
       role="img"
       aria-label={label}
     >
       <title>{label}</title>
-      <ThumbGlyph direction={direction} color={color} strokeWidth={7} />
+      <WaxRing color={color} />
+      <ThumbGlyph direction={direction} color={color} strokeWidth={6} />
+      {tier === 'LION FOOD' && <Crack color={color} />}
     </svg>
   );
 }

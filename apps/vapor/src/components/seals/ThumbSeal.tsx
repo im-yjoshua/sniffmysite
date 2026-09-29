@@ -18,8 +18,9 @@ interface ThumbSealProps {
 }
 
 /** Wax edge: a circle with a subtle organic wobble. Deterministic — the
- * same seal every render. */
-function waxEdge(cx: number, cy: number, r: number, teeth = 44): string {
+ * same seal every render. Exported for TierMark, which stamps every tier
+ * in the same wax. */
+export function waxEdge(cx: number, cy: number, r: number, teeth = 44): string {
   const pts: string[] = [];
   for (let i = 0; i < teeth; i++) {
     const a = (i / teeth) * Math.PI * 2;

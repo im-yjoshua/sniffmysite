@@ -326,33 +326,30 @@ body {
   }
 }
 
-/* --- Marquee ticker ------------------------------------------------------
-   Seamless loop: the track holds two copies of the list and translates -50%.
+/* --- Latest-sniff pulse ------------------------------------------------------
+   Strictly one site: the pulse remounts (key bump in Ticker.tsx) whenever a
+   newer scan lands, replaying this fade-rise. Reduced-motion users get the
+   swap with no animation at all.
    ------------------------------------------------------------------------ */
 
-.marquee {
-  overflow: hidden;
+.ticker-pulse {
+  animation: ticker-pulse-in 0.45s ease-out;
 }
 
-.marquee-track {
-  display: inline-flex;
-  align-items: center;
-  width: max-content;
-  animation: marquee 38s linear infinite;
-  will-change: transform;
-}
-
-.marquee:hover .marquee-track,
-.marquee:focus-within .marquee-track {
-  animation-play-state: paused;
-}
-
-@keyframes marquee {
+@keyframes ticker-pulse-in {
   from {
-    transform: translateX(0);
+    opacity: 0;
+    transform: translateY(6px);
   }
   to {
-    transform: translateX(-50%);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-pulse {
+    animation: none;
   }
 }
 
