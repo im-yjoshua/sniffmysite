@@ -202,7 +202,7 @@ billingRouter.post(
       return res.json({ received: true, ...sponsorOutcome });
     }
 
-    const outcome = applyBillingEvent(payload);
+    const outcome = await applyBillingEvent(payload);
     console.log(
       `[billing] webhook vapor ${payload?.meta?.event_name ?? 'unknown'} →`,
       outcome.handled ? outcome.action : outcome.reason,
@@ -247,15 +247,15 @@ async function handleBurnWebhook(
   res.json({ received: true, ...outcome });
 }
 
-billingRouter.get('/credits', (req: Request, res: Response) => {
+billingRouter.get('/credits', async (req: Request, res: Response) => {
   const email = (req.query.email ?? '').toString().trim();
   if (!EMAIL_RE.test(email)) {
     return res.status(400).json({ error: 'invalid_email' });
   }
-  res.json(creditsFor(email));
+  res.json(await creditsFor(email));
 });
 
-billingRouter.post('/consume', (req: Request, res: Response) => {
+billingRouter.post('/consume', async (req: Request, res: Response) => {
   const { email, product } = req.body ?? {};
   if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
     return res.status(400).json({ error: 'invalid_email' });
@@ -263,7 +263,7 @@ billingRouter.post('/consume', (req: Request, res: Response) => {
   if (!isProductKey(product)) {
     return res.status(400).json({ error: 'unknown_product' });
   }
-  const { ok, remaining } = consumeCredit(email.trim(), product);
+  const { ok, remaining } = await consumeCredit(email.trim(), product);
   if (!ok) {
     return res.status(402).json({
       error: 'no_credits',

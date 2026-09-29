@@ -24,27 +24,27 @@ function sign(body: Buffer): string {
 describe('verifyWebhookSignature', () => {
   const body = Buffer.from(JSON.stringify({ hello: 'world' }), 'utf8');
 
-  it('accepts a correct X-Signature', () => {
+  it('accepts a correct X-Signature', async () => {
     assert.equal(verifyWebhookSignature(body, sign(body), SECRET), true);
   });
 
-  it('rejects a tampered signature', () => {
+  it('rejects a tampered signature', async () => {
     const bad = sign(body).replace(/^./, sign(body)[0] === 'a' ? 'b' : 'a');
     assert.equal(verifyWebhookSignature(body, bad, SECRET), false);
   });
 
-  it('rejects when the body was modified after signing', () => {
+  it('rejects when the body was modified after signing', async () => {
     const other = Buffer.from(JSON.stringify({ hello: 'mars' }), 'utf8');
     assert.equal(verifyWebhookSignature(other, sign(body), SECRET), false);
   });
 
-  it('rejects missing signature, missing secret, and empty body', () => {
+  it('rejects missing signature, missing secret, and empty body', async () => {
     assert.equal(verifyWebhookSignature(body, undefined, SECRET), false);
     assert.equal(verifyWebhookSignature(body, sign(body), undefined), false);
     assert.equal(verifyWebhookSignature(Buffer.alloc(0), sign(body), SECRET), false);
   });
 
-  it('tolerates surrounding whitespace on the header value', () => {
+  it('tolerates surrounding whitespace on the header value', async () => {
     assert.equal(
       verifyWebhookSignature(body, `  ${sign(body)}\n`, SECRET),
       true,
@@ -155,34 +155,34 @@ describe('createLemonCheckout', () => {
 describe('entitlement ledger', () => {
   beforeEach(() => _resetBillingState());
 
-  it('grants are idempotent on the Lemon Squeezy order id', () => {
-    const first = grantCredits('Founder@Example.com', 'rescan', 'ord_1');
+  it('grants are idempotent on the Lemon Squeezy order id', async () => {
+    const first = await grantCredits('Founder@Example.com', 'rescan', 'ord_1');
     assert.equal(first.granted, true);
     assert.equal(first.credits, 1);
-    const second = grantCredits('founder@example.com', 'rescan', 'ord_1');
+    const second = await grantCredits('founder@example.com', 'rescan', 'ord_1');
     assert.equal(second.granted, false);
     assert.equal(second.credits, 1);
   });
 
-  it('different orders stack; different products are separate', () => {
-    grantCredits('a@b.co', 'rescan', 'ord_1');
-    grantCredits('a@b.co', 'rescan', 'ord_2');
-    grantCredits('a@b.co', 'audit', 'ord_3');
-    const c = creditsFor('A@B.CO');
+  it('different orders stack; different products are separate', async () => {
+    await grantCredits('a@b.co', 'rescan', 'ord_1');
+    await grantCredits('a@b.co', 'rescan', 'ord_2');
+    await grantCredits('a@b.co', 'audit', 'ord_3');
+    const c = await creditsFor('A@B.CO');
     assert.deepEqual(c.products, { rescan: 2, audit: 1 });
   });
 
-  it('consume decrements and refuses at zero', () => {
-    grantCredits('a@b.co', 'rescan', 'ord_1');
-    assert.deepEqual(consumeCredit('a@b.co', 'rescan'), {
+  it('consume decrements and refuses at zero', async () => {
+    await grantCredits('a@b.co', 'rescan', 'ord_1');
+    assert.deepEqual(await consumeCredit('a@b.co', 'rescan'), {
       ok: true,
       remaining: 0,
     });
-    assert.deepEqual(consumeCredit('a@b.co', 'rescan'), {
+    assert.deepEqual(await consumeCredit('a@b.co', 'rescan'), {
       ok: false,
       remaining: 0,
     });
-    assert.deepEqual(consumeCredit('nobody@b.co', 'audit'), {
+    assert.deepEqual(await consumeCredit('nobody@b.co', 'audit'), {
       ok: false,
       remaining: 0,
     });
@@ -203,69 +203,69 @@ describe('applyBillingEvent', () => {
     },
   });
 
-  it('grants credits from custom_data on order_created', () => {
-    const out = applyBillingEvent(
+  it('grants credits from custom_data on order_created', async () => {
+    const out = await applyBillingEvent(
       orderCreated({ product: 'rescan', email: 'buyer@example.com' }),
     );
     assert.deepEqual(out, { handled: true, action: 'granted' });
-    assert.deepEqual(creditsFor('buyer@example.com').products, {
+    assert.deepEqual((await creditsFor('buyer@example.com')).products, {
       rescan: 1,
       audit: 0,
     });
   });
 
-  it('falls back to the order email when custom_data lacks one', () => {
-    applyBillingEvent(orderCreated({ product: 'audit' }));
-    assert.equal(creditsFor('fallback@example.com').products.audit, 1);
+  it('falls back to the order email when custom_data lacks one', async () => {
+    await applyBillingEvent(orderCreated({ product: 'audit' }));
+    assert.equal((await creditsFor('fallback@example.com')).products.audit, 1);
   });
 
-  it('reports duplicates on webhook retries', () => {
+  it('reports duplicates on webhook retries', async () => {
     const ev = orderCreated({ product: 'rescan', email: 'x@y.co' }, 'ord_dup');
-    assert.deepEqual(applyBillingEvent(ev), {
+    assert.deepEqual(await applyBillingEvent(ev), {
       handled: true,
       action: 'granted',
     });
-    assert.deepEqual(applyBillingEvent(ev), {
+    assert.deepEqual(await applyBillingEvent(ev), {
       handled: true,
       action: 'duplicate',
     });
-    assert.equal(creditsFor('x@y.co').products.rescan, 1);
+    assert.equal((await creditsFor('x@y.co')).products.rescan, 1);
   });
 
-  it('rejects unknown products, missing emails, and malformed events', () => {
+  it('rejects unknown products, missing emails, and malformed events', async () => {
     assert.deepEqual(
-      applyBillingEvent(orderCreated({ product: 'moon' })),
+      await applyBillingEvent(orderCreated({ product: 'moon' })),
       { handled: false, reason: 'unknown_product' },
     );
     assert.deepEqual(
-      applyBillingEvent({
+      await applyBillingEvent({
         meta: { event_name: 'order_created', custom_data: { product: 'rescan' } },
         data: { id: '1', attributes: {} },
       }),
       { handled: false, reason: 'missing_email' },
     );
-    assert.deepEqual(applyBillingEvent({}), {
+    assert.deepEqual(await applyBillingEvent({}), {
       handled: false,
       reason: 'malformed_event',
     });
   });
 
-  it('claws the credit back on order_refunded (floored at zero)', () => {
-    applyBillingEvent(orderCreated({ product: 'rescan', email: 'r@s.co' }, 'ord_r'));
-    consumeCredit('r@s.co', 'rescan'); // spent already — refund can't go negative
+  it('claws the credit back on order_refunded (floored at zero)', async () => {
+    await applyBillingEvent(orderCreated({ product: 'rescan', email: 'r@s.co' }, 'ord_r'));
+    await consumeCredit('r@s.co', 'rescan'); // spent already — refund can't go negative
     assert.deepEqual(
-      applyBillingEvent({
+      await applyBillingEvent({
         meta: { event_name: 'order_refunded' },
         data: { id: 'ord_r', attributes: {} },
       }),
       { handled: true, action: 'refunded' },
     );
-    assert.equal(creditsFor('r@s.co').products.rescan, 0);
+    assert.equal((await creditsFor('r@s.co')).products.rescan, 0);
   });
 
-  it('treats unknown refund order ids as an idempotent no-op', () => {
+  it('treats unknown refund order ids as an idempotent no-op', async () => {
     assert.deepEqual(
-      applyBillingEvent({
+      await applyBillingEvent({
         meta: { event_name: 'order_refunded' },
         data: { id: 'ord_ghost', attributes: {} },
       }),
@@ -273,9 +273,9 @@ describe('applyBillingEvent', () => {
     );
   });
 
-  it('ignores unrelated events without failing', () => {
+  it('ignores unrelated events without failing', async () => {
     assert.deepEqual(
-      applyBillingEvent({
+      await applyBillingEvent({
         meta: { event_name: 'subscription_created' },
         data: { id: 'sub_1' },
       }),
@@ -291,7 +291,7 @@ describe('billing guards and catalog', () => {
     else process.env.LEMONSQUEEZY_TEST_MODE = OLD;
   });
 
-  it('test mode is only on with the explicit flag', () => {
+  it('test mode is only on with the explicit flag', async () => {
     delete process.env.LEMONSQUEEZY_TEST_MODE;
     assert.equal(isBillingTestMode(), false);
     process.env.LEMONSQUEEZY_TEST_MODE = 'false';
@@ -300,7 +300,7 @@ describe('billing guards and catalog', () => {
     assert.equal(isBillingTestMode(), true);
   });
 
-  it('the catalog holds the plan §2.6 products at the right prices', () => {
+  it('the catalog holds the plan §2.6 products at the right prices', async () => {
     assert.equal(PRODUCTS.rescan.priceCents, 500);
     assert.equal(PRODUCTS.audit.priceCents, 2900);
     assert.ok(isProductKey('rescan'));

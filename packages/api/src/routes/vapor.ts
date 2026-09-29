@@ -113,7 +113,7 @@ vaporRouter.post('/scan', async (req, res) => {
         detail: 'Provide a valid "priority_email" to use the priority lane.',
       });
     }
-    const balance = creditsFor(email).products.rescan;
+    const balance = (await creditsFor(email)).products.rescan;
     if (balance <= 0) {
       return res.status(402).json({
         error: 'no_credits',
@@ -139,7 +139,7 @@ vaporRouter.post('/scan', async (req, res) => {
       });
     }
     // Spend the credit only once we're committed to scanning.
-    const spent = consumeCredit(priorityEmail, 'rescan');
+    const spent = await consumeCredit(priorityEmail, 'rescan');
     if (!spent.ok) {
       // Raced away between the balance check and now — be honest about it.
       return res.status(402).json({

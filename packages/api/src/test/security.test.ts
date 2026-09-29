@@ -208,7 +208,7 @@ describe('POST /api/vapor/scan — Task 10 gates', () => {
     process.env.TURNSTILE_SECRET_KEY = 'test-secret';
     try {
       const email = 'founder@budget.test';
-      grantCredits(email, 'rescan', 'order-1');
+      await grantCredits(email, 'rescan', 'order-1');
 
       // Spend the whole anonymous budget.
       for (let i = 0; i < 30; i++) {
@@ -219,7 +219,7 @@ describe('POST /api/vapor/scan — Task 10 gates', () => {
       // A priority scan still works on its own lane…
       const p = await scan({ url: SCAN_URL, priority_email: email });
       assert.equal(p.status, 403, 'passed the gates (403 = sandbox DNS)');
-      assert.equal(creditsFor(email).products.rescan, 0, 'one credit spent');
+      assert.equal((await creditsFor(email)).products.rescan, 0, 'one credit spent');
 
       // …and it granted the anonymous budget nothing.
       const still = await scan({ url: SCAN_URL });
@@ -232,9 +232,9 @@ describe('POST /api/vapor/scan — Task 10 gates', () => {
 
   it('the priority lane skips the anonymous bucket and spends one credit per scan', async () => {
     const email = 'founder@priority.test';
-    grantCredits(email, 'rescan', 'order-1');
-    grantCredits(email, 'rescan', 'order-2');
-    grantCredits(email, 'rescan', 'order-3');
+    await grantCredits(email, 'rescan', 'order-1');
+    await grantCredits(email, 'rescan', 'order-2');
+    await grantCredits(email, 'rescan', 'order-3');
 
     // 15 priority scans: none may 429 (anonymous bucket is untouched).
     for (let i = 0; i < 15; i++) {
@@ -250,7 +250,7 @@ describe('POST /api/vapor/scan — Task 10 gates', () => {
       }
     }
     assert.equal(
-      creditsFor(email).products.rescan,
+      (await creditsFor(email)).products.rescan,
       0,
       'exactly 3 credits consumed',
     );
@@ -484,7 +484,7 @@ describe('setShareCardHeaders — public card PNG headers', () => {
     return res.headers;
   };
 
-  it('sets image/png, public caching, CORP cross-origin, and the ETag', () => {
+  it('sets image/png, public caching, CORP cross-origin, and the ETag', async () => {
     const headers = call('"abc123"', 86400);
     assert.equal(headers['content-type'], 'image/png');
     assert.equal(headers['cache-control'], 'public, max-age=86400');
@@ -496,7 +496,7 @@ describe('setShareCardHeaders — public card PNG headers', () => {
     assert.equal(headers['etag'], '"abc123"');
   });
 
-  it('honors a shorter max-age for the burn report cards', () => {
+  it('honors a shorter max-age for the burn report cards', async () => {
     assert.equal(call('"xyz"', 3600)['cache-control'], 'public, max-age=3600');
   });
 });

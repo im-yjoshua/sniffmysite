@@ -61,7 +61,7 @@ function orderEvent(
 }
 
 describe('sponsor catalog', () => {
-  it('exposes banner7/banner30 with placeholder prices and the right env vars', () => {
+  it('exposes banner7/banner30 with placeholder prices and the right env vars', async () => {
     assert.equal(SPONSOR_PRODUCTS.banner7.priceDisplay, '$19');
     assert.equal(SPONSOR_PRODUCTS.banner7.termDays, 7);
     assert.equal(
@@ -76,7 +76,7 @@ describe('sponsor catalog', () => {
     );
   });
 
-  it('isSponsorProductKey only matches banner keys', () => {
+  it('isSponsorProductKey only matches banner keys', async () => {
     assert.equal(isSponsorProductKey('banner7'), true);
     assert.equal(isSponsorProductKey('banner30'), true);
     assert.equal(isSponsorProductKey('rescan'), false);
@@ -87,13 +87,13 @@ describe('sponsor catalog', () => {
 });
 
 describe('validateAdvertiser', () => {
-  it('accepts a clean advertiser input', () => {
+  it('accepts a clean advertiser input', async () => {
     const out = validateAdvertiser(GOOD_INPUT);
     assert.equal(out.ok, true);
     if (out.ok) assert.deepEqual(out.value, GOOD_INPUT);
   });
 
-  it('rejects an http:// image URL', () => {
+  it('rejects an http:// image URL', async () => {
     const out = validateAdvertiser({
       ...GOOD_INPUT,
       image_url: 'http://cdn.acme.tools/banner.png',
@@ -101,7 +101,7 @@ describe('validateAdvertiser', () => {
     assert.equal(out.ok, false);
   });
 
-  it('rejects a javascript: destination URL', () => {
+  it('rejects a javascript: destination URL', async () => {
     const out = validateAdvertiser({
       ...GOOD_INPUT,
       dest_url: 'javascript:alert(1)',
@@ -109,7 +109,7 @@ describe('validateAdvertiser', () => {
     assert.equal(out.ok, false);
   });
 
-  it('rejects ftp: and relative URLs', () => {
+  it('rejects ftp: and relative URLs', async () => {
     assert.equal(
       validateAdvertiser({ ...GOOD_INPUT, image_url: 'ftp://x/y.png' }).ok,
       false,
@@ -120,7 +120,7 @@ describe('validateAdvertiser', () => {
     );
   });
 
-  it('rejects an oversize brand name and oversize alt text', () => {
+  it('rejects an oversize brand name and oversize alt text', async () => {
     assert.equal(
       validateAdvertiser({ ...GOOD_INPUT, brand_name: 'x'.repeat(61) }).ok,
       false,
@@ -131,7 +131,7 @@ describe('validateAdvertiser', () => {
     );
   });
 
-  it('rejects missing brand_name / alt_text', () => {
+  it('rejects missing brand_name / alt_text', async () => {
     assert.equal(
       validateAdvertiser({ ...GOOD_INPUT, brand_name: '   ' }).ok,
       false,
@@ -142,7 +142,7 @@ describe('validateAdvertiser', () => {
     );
   });
 
-  it('strips control characters instead of rejecting', () => {
+  it('strips control characters instead of rejecting', async () => {
     const out = validateAdvertiser({
       ...GOOD_INPUT,
       brand_name: 'Acme\x00Tools\x1f',
@@ -155,7 +155,7 @@ describe('validateAdvertiser', () => {
 describe('sponsor lifecycle (store)', () => {
   beforeEach(() => _resetSponsorState());
 
-  it('new records start pending_approval and are not publicly served', () => {
+  it('new records start pending_approval and are not publicly served', async () => {
     const { created, record } = createPendingSponsor(
       GOOD_INPUT,
       'ord_1',
@@ -169,7 +169,7 @@ describe('sponsor lifecycle (store)', () => {
     assert.equal(listActiveSponsors(T0).length, 0);
   });
 
-  it('approve sets the window; served inside, hidden before starts_at and after ends_at', () => {
+  it('approve sets the window; served inside, hidden before starts_at and after ends_at', async () => {
     const { record } = createPendingSponsor(
       GOOD_INPUT,
       'ord_2',
@@ -193,7 +193,7 @@ describe('sponsor lifecycle (store)', () => {
     assert.equal(listActiveSponsors(T0 + 7 * DAY).length, 0); // expired
   });
 
-  it('approve with an explicit starts_at schedules the window', () => {
+  it('approve with an explicit starts_at schedules the window', async () => {
     const { record } = createPendingSponsor(
       GOOD_INPUT,
       'ord_3',
@@ -206,7 +206,7 @@ describe('sponsor lifecycle (store)', () => {
     assert.equal(listActiveSponsors(T0 + 6 * DAY).length, 1);
   });
 
-  it('rejected records are never served', () => {
+  it('rejected records are never served', async () => {
     const { record } = createPendingSponsor(
       GOOD_INPUT,
       'ord_4',
@@ -219,7 +219,7 @@ describe('sponsor lifecycle (store)', () => {
     assert.equal(listActiveSponsors(T0 + DAY).length, 0);
   });
 
-  it('active sponsors sort oldest-first for slot assignment', () => {
+  it('active sponsors sort oldest-first for slot assignment', async () => {
     const a = createPendingSponsor(
       { ...GOOD_INPUT, brand_name: 'First' },
       'ord_a',
@@ -242,7 +242,7 @@ describe('sponsor lifecycle (store)', () => {
     assert.equal(active[1].brand_name, 'Second');
   });
 
-  it('public records carry no buyer email or order id', () => {
+  it('public records carry no buyer email or order id', async () => {
     const { record } = createPendingSponsor(
       GOOD_INPUT,
       'ord_5',
@@ -256,7 +256,7 @@ describe('sponsor lifecycle (store)', () => {
     assert.ok(!('order_id' in pub));
   });
 
-  it('listSponsors filters by status, newest first', () => {
+  it('listSponsors filters by status, newest first', async () => {
     const a = createPendingSponsor(GOOD_INPUT, 'ord_x', 'a@x.com', 7, T0);
     createPendingSponsor(GOOD_INPUT, 'ord_y', 'b@x.com', 7, T0 + 1000);
     approveSponsor(a.record.id, T0, T0);
@@ -266,7 +266,7 @@ describe('sponsor lifecycle (store)', () => {
     assert.equal(listSponsors().length, 2);
   });
 
-  it('approve/reject on unknown ids return null', () => {
+  it('approve/reject on unknown ids return null', async () => {
     assert.equal(approveSponsor('nope'), null);
     assert.equal(rejectSponsor('nope'), null);
   });
@@ -275,7 +275,7 @@ describe('sponsor lifecycle (store)', () => {
 describe('applySponsorEvent (webhook grants)', () => {
   beforeEach(() => _resetSponsorState());
 
-  it('order_created creates a pending_approval record with the product term', () => {
+  it('order_created creates a pending_approval record with the product term', async () => {
     const outcome = applySponsorEvent(orderEvent('order_created', 'ord_10', 'banner7'));
     assert.deepEqual(outcome, { handled: true, action: 'pending_approval' });
     const [rec] = listSponsors();
@@ -287,12 +287,12 @@ describe('applySponsorEvent (webhook grants)', () => {
     assert.equal(listActiveSponsors().length, 0);
   });
 
-  it('banner30 grants a 30-day term', () => {
+  it('banner30 grants a 30-day term', async () => {
     applySponsorEvent(orderEvent('order_created', 'ord_11', 'banner30'));
     assert.equal(listSponsors()[0].term_days, 30);
   });
 
-  it('is idempotent on the order id — same order twice never double-creates', () => {
+  it('is idempotent on the order id — same order twice never double-creates', async () => {
     const evt = orderEvent('order_created', 'ord_12', 'banner7');
     assert.equal(handledAction(applySponsorEvent(evt)), 'pending_approval');
     assert.equal(handledAction(applySponsorEvent(evt)), 'duplicate');
@@ -300,7 +300,7 @@ describe('applySponsorEvent (webhook grants)', () => {
     assert.equal(listSponsors().length, 1);
   });
 
-  it('order_refunded marks the record rejected — it can never be served', () => {
+  it('order_refunded marks the record rejected — it can never be served', async () => {
     applySponsorEvent(orderEvent('order_created', 'ord_13', 'banner7'));
     const [rec] = listSponsors();
     approveSponsor(rec.id, T0 - DAY, T0); // would otherwise be live
@@ -313,7 +313,7 @@ describe('applySponsorEvent (webhook grants)', () => {
     assert.equal(listActiveSponsors(T0).length, 0);
   });
 
-  it('refund of an unknown order is an idempotent no-op', () => {
+  it('refund of an unknown order is an idempotent no-op', async () => {
     const outcome = applySponsorEvent(
       orderEvent('order_refunded', 'ord_unknown', 'banner7'),
     );
@@ -321,15 +321,15 @@ describe('applySponsorEvent (webhook grants)', () => {
     assert.equal(listSponsors().length, 0);
   });
 
-  it('banner events never touch the rescan/audit credit ledger', () => {
+  it('banner events never touch the rescan/audit credit ledger', async () => {
     applySponsorEvent(orderEvent('order_created', 'ord_14', 'banner7'));
     applySponsorEvent(orderEvent('order_refunded', 'ord_14', 'banner7'));
-    const credits = creditsFor('buyer@example.com');
+    const credits = await creditsFor('buyer@example.com');
     assert.equal(credits.products.rescan, 0);
     assert.equal(credits.products.audit, 0);
   });
 
-  it('non-banner products route to unknown_product here (the billing ledger owns them)', () => {
+  it('non-banner products route to unknown_product here (the billing ledger owns them)', async () => {
     const outcome = applySponsorEvent(
       orderEvent('order_created', 'ord_15', 'rescan'),
     );
@@ -337,7 +337,7 @@ describe('applySponsorEvent (webhook grants)', () => {
     assert.equal(listSponsors().length, 0);
   });
 
-  it('bad advertiser input fails closed with no record', () => {
+  it('bad advertiser input fails closed with no record', async () => {
     const outcome = applySponsorEvent(
       orderEvent('order_created', 'ord_16', 'banner7', {
         dest_url: 'javascript:alert(1)',
@@ -350,7 +350,7 @@ describe('applySponsorEvent (webhook grants)', () => {
     assert.equal(listSponsors().length, 0);
   });
 
-  it('malformed events and other event names are reported, not crashes', () => {
+  it('malformed events and other event names are reported, not crashes', async () => {
     assert.deepEqual(applySponsorEvent(null), {
       handled: false,
       reason: 'malformed_event',

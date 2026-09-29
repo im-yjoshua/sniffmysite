@@ -17,10 +17,16 @@ import crypto from 'crypto';
  * Lemon Squeezy seller application is approved — see PROGRESS.md (Task 9).
  * Never log the API key or webhook secret anywhere.
  *
- * State lives in an in-memory Map keyed by `email|product`. Deploy seam:
- * Supabase `billing.entitlements` replaces this Map — same record shape,
- * same function signatures (id, email, product, credits, order_ids).
- * Server restarts lose in-memory billing state, exactly like Task 8 claims.
+ * State: Supabase `billing.credit_ledger` is the source of truth
+ * (migration 010), via the atomic `billing.grant_credits` /
+ * `billing.consume_credit` / `billing.refund_credits` RPCs — balances and
+ * webhook idempotency survive Render restarts. When Supabase isn't
+ * configured (unit tests, local dev without env vars) the functions fall
+ * back to the in-memory Map below, which keeps the old sync semantics as
+ * the test seam. When Supabase IS configured, failures propagate (the
+ * webhook answers 500 so Polar redelivers; the scan answers 500 so the
+ * buyer retries with their credit intact) — money never silently
+ * degrades to memory.
  */
 
 export type BillingProductKey = 'rescan' | 'audit';
@@ -178,8 +184,11 @@ export async function createLemonCheckout(
 }
 
 /* ------------------------------------------------------------------ */
-/* Entitlement ledger (in-memory; Supabase billing.entitlements seam)    */
+/* Entitlement ledger — Supabase `billing.credit_ledger` (migration 010)   */
 /* ------------------------------------------------------------------ */
+
+import { getSupabase } from './supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface EntitlementRecord {
   email: string;
@@ -189,17 +198,33 @@ export interface EntitlementRecord {
   updatedAt: string;
 }
 
+/**
+ * In-memory fallback used ONLY when Supabase isn't configured (unit
+ * tests, local dev without env vars). Never the production path.
+ */
 const ledger = new Map<string, EntitlementRecord>();
 
 function ledgerKey(email: string, product: BillingProductKey): string {
   return `${email.toLowerCase()}|${product}`;
 }
 
-/**
- * Idempotent grant: the same Lemon Squeezy order id never double-credits.
- * Idempotency key = LS order id (§1.5).
- */
-export function grantCredits(
+/** Null when Supabase isn't configured → use the in-memory fallback. */
+function billingDb(): SupabaseClient | null {
+  try {
+    return getSupabase();
+  } catch (e) {
+    if (e instanceof Error && e.message === 'supabase_not_configured') return null;
+    throw e;
+  }
+}
+
+function billingSchema(db: SupabaseClient) {
+  return db.schema('billing');
+}
+
+/* ---------------- in-memory fallback (test seam) ---------------- */
+
+function grantCreditsMem(
   email: string,
   product: BillingProductKey,
   orderId: string,
@@ -222,8 +247,7 @@ export function grantCredits(
   return { granted: true, credits: rec.credits };
 }
 
-/** Spend one credit. Returns false (402 upstream) when the balance is 0. */
-export function consumeCredit(
+function consumeCreditMem(
   email: string,
   product: BillingProductKey,
 ): { ok: boolean; remaining: number } {
@@ -236,7 +260,7 @@ export function consumeCredit(
   return { ok: true, remaining: rec.credits };
 }
 
-export function creditsFor(email: string): {
+function creditsForMem(email: string): {
   email: string;
   products: Record<BillingProductKey, number>;
 } {
@@ -248,6 +272,120 @@ export function creditsFor(email: string): {
       audit: ledger.get(`${norm}|audit`)?.credits ?? 0,
     },
   };
+}
+
+function refundCreditsMem(orderId: string): boolean {
+  for (const rec of ledger.values()) {
+    const idx = rec.orderIds.indexOf(orderId);
+    if (idx !== -1) {
+      rec.orderIds.splice(idx, 1);
+      rec.credits = Math.max(
+        0,
+        rec.credits - PRODUCTS[rec.product].creditsPerOrder,
+      );
+      rec.updatedAt = new Date().toISOString();
+      return true;
+    }
+  }
+  return false;
+}
+
+/* ---------------- Supabase-backed operations ---------------- */
+
+/**
+ * Idempotent grant: the same Lemon Squeezy order id never double-credits.
+ * Idempotency key = LS order id (§1.5). Atomic via the
+ * `billing.grant_credits` RPC — safe under webhook redelivery and
+ * concurrent deliveries alike.
+ */
+export async function grantCredits(
+  email: string,
+  product: BillingProductKey,
+  orderId: string,
+): Promise<{ granted: boolean; credits: number }> {
+  const db = billingDb();
+  if (!db) return grantCreditsMem(email, product, orderId);
+  const { data, error } = await billingSchema(db).rpc('grant_credits', {
+    p_email: email.toLowerCase(),
+    p_product: product,
+    p_credits: PRODUCTS[product].creditsPerOrder,
+    p_order_id: orderId,
+  });
+  if (error) throw error;
+  const row = (data as Array<{ granted: boolean; credits: number }> | null)?.[0];
+  if (!row) throw new Error('grant_credits returned no row');
+  return { granted: row.granted, credits: row.credits };
+}
+
+/**
+ * Spend one credit. Returns { ok: false } (402 upstream) when the balance
+ * is 0. Atomic via `billing.consume_credit` — two racing spends can't
+ * both take the last credit.
+ */
+export async function consumeCredit(
+  email: string,
+  product: BillingProductKey,
+): Promise<{ ok: boolean; remaining: number }> {
+  const db = billingDb();
+  if (!db) return consumeCreditMem(email, product);
+  const { data, error } = await billingSchema(db).rpc('consume_credit', {
+    p_email: email.toLowerCase(),
+    p_product: product,
+  });
+  if (error) throw error;
+  const row = (data as Array<{ ok: boolean; remaining: number }> | null)?.[0];
+  if (!row) throw new Error('consume_credit returned no row');
+  return { ok: row.ok, remaining: row.remaining };
+}
+
+export async function creditsFor(email: string): Promise<{
+  email: string;
+  products: Record<BillingProductKey, number>;
+}> {
+  const db = billingDb();
+  if (!db) return creditsForMem(email);
+  const norm = email.toLowerCase();
+  const { data, error } = await billingSchema(db)
+    .from('credit_ledger')
+    .select('product, credits')
+    .eq('email', norm)
+    .in('product', ['rescan', 'audit']);
+  if (error) throw error;
+  const products: Record<BillingProductKey, number> = { rescan: 0, audit: 0 };
+  for (const row of (data as Array<{ product: string; credits: number }>) ?? []) {
+    if (row.product === 'rescan' || row.product === 'audit') {
+      products[row.product] = row.credits;
+    }
+  }
+  return { email: norm, products };
+}
+
+/**
+ * Claw back the grant for a refunded order. Unknown orders are a no-op
+ * (idempotent — the webhook still answers 200 so Polar stops retrying).
+ */
+export async function refundCredits(orderId: string): Promise<boolean> {
+  const db = billingDb();
+  if (!db) return refundCreditsMem(orderId);
+  const schema = billingSchema(db);
+  // Find which product this order granted, so the clawback removes the
+  // right number of credits (PRODUCTS.creditsPerOrder is app config).
+  const { data: holder, error: holderError } = await schema
+    .from('credit_ledger')
+    .select('product')
+    .contains('order_ids', [orderId])
+    .limit(1)
+    .maybeSingle();
+  if (holderError) throw holderError;
+  if (!holder) return false;
+  const product = (holder as { product: string }).product as BillingProductKey;
+  if (!isProductKey(product)) return false;
+  const { data, error } = await schema.rpc('refund_credits', {
+    p_order_id: orderId,
+    p_credits: PRODUCTS[product].creditsPerOrder,
+  });
+  if (error) throw error;
+  return data === true;
 }
 
 /** Test seam — wipes in-memory billing state. Never called in production. */
@@ -273,7 +411,7 @@ export type WebhookOutcome =
  * first, `data.attributes.user_email` as fallback. The product comes from
  * custom_data — never from the order's variant name, which is display copy.
  */
-export function applyBillingEvent(payload: any): WebhookOutcome {
+export async function applyBillingEvent(payload: any): Promise<WebhookOutcome> {
   const eventName = payload?.meta?.event_name;
   const data = payload?.data;
   if (typeof eventName !== 'string' || !data) {
@@ -295,24 +433,13 @@ export function applyBillingEvent(payload: any): WebhookOutcome {
       .trim();
     if (!email) return { handled: false, reason: 'missing_email' };
     const orderId = String(data.id);
-    const { granted } = grantCredits(email, product, orderId);
+    const { granted } = await grantCredits(email, product, orderId);
     return { handled: true, action: granted ? 'granted' : 'duplicate' };
   }
 
   if (eventName === 'order_refunded') {
     const orderId = String(data.id);
-    for (const rec of ledger.values()) {
-      const idx = rec.orderIds.indexOf(orderId);
-      if (idx !== -1) {
-        rec.orderIds.splice(idx, 1);
-        rec.credits = Math.max(
-          0,
-          rec.credits - PRODUCTS[rec.product].creditsPerOrder,
-        );
-        rec.updatedAt = new Date().toISOString();
-        return { handled: true, action: 'refunded' };
-      }
-    }
+    await refundCredits(orderId);
     // Order unknown to us — idempotent no-op, still a 200 to stop retries.
     return { handled: true, action: 'refunded' };
   }
