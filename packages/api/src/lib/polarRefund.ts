@@ -93,6 +93,8 @@ export function polarRefundClient(
             reason: 'other',
             comment: STALE_COMMENT,
           }),
+          // A hung Polar must not hold the refund worker (fixes #9).
+          signal: AbortSignal.timeout(8000),
         });
       } catch {
         throw new PolarRefundError(0, 'creation');

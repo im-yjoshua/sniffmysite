@@ -67,6 +67,14 @@ let warnedAboutEphemeralSecret = false;
 export function getClaimDnsSecret(): string {
   const fromEnv = process.env.CLAIM_DNS_SECRET;
   if (fromEnv && fromEnv.length >= 16) return fromEnv;
+  // Fail CLOSED in production (fixes #12): an ephemeral secret silently
+  // breaks DNS challenges after every restart (opaque 422s). Dev keeps the
+  // per-process secret so local claim flows stay testable.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'CLAIM_DNS_SECRET is not set (or too short) — refusing to issue DNS challenges with an ephemeral secret in production.',
+    );
+  }
   if (!warnedAboutEphemeralSecret) {
     warnedAboutEphemeralSecret = true;
     console.warn(

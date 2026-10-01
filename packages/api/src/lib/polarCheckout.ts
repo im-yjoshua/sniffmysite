@@ -95,6 +95,8 @@ export async function createThroneCheckout(
         },
         allow_discount_codes: false,
       }),
+      // A hung Polar must not hold the checkout request (fixes #9).
+      signal: AbortSignal.timeout(8000),
     });
   } catch {
     throw new PolarCheckoutError(0);

@@ -1,14 +1,20 @@
 /**
  * Cloudflare Turnstile verification for public write endpoints (§1.5).
  *
- * TODO (deploy-time): set TURNSTILE_SECRET_KEY in the Render env and add the
- * Turnstile widget to the submit form. Until then this logs a warning and
- * lets the request through — the honeypot field + rate limiting are the
- * active bot defenses in dev.
+ * Fail-CLOSED in production: when TURNSTILE_SECRET_KEY is unset and
+ * NODE_ENV=production, verification returns false instead of silently
+ * disabling bot protection. Dev keeps the warn-and-pass so local work
+ * never bricks. (Fixes #4.)
  */
 export async function verifyTurnstile(token: string | undefined): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(
+        '[api] TURNSTILE_SECRET_KEY is not set — refusing to skip the bot check in production.',
+      );
+      return false;
+    }
     console.warn(
       '[api] TURNSTILE_SECRET_KEY not set — skipping bot check (set it before launch).',
     );
@@ -19,6 +25,8 @@ export async function verifyTurnstile(token: string | undefined): Promise<boolea
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ secret, response: token }),
+    // A hung Cloudflare must not stall the scan request (fixes #9).
+    signal: AbortSignal.timeout(8000),
   });
   const data = (await res.json()) as { success?: boolean };
   return data?.success === true;

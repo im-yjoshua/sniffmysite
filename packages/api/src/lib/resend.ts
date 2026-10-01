@@ -7,10 +7,11 @@
  *                      e.g. noreply@burn-rate.lol. Resend rejects sends from
  *                      unverified domains.
  *
- * Dev mode: when RESEND_API_KEY is unset, no email is sent — the magic link
- * is logged to the server console with a loud warning and the endpoint still
- * returns "check your inbox". Claim flows are fully testable locally without
- * a Resend account; just remember production needs the key + verified domain.
+ * Dev mode: when RESEND_API_KEY is unset, no email is sent. In production
+ * this is a LOUD failure (ok:false) — a misconfigured prod must never
+ * pretend the email went out. In dev it warns and returns ok:true so claim
+ * flows stay testable locally. The magic link is NEVER logged: it is a
+ * bearer token and Render logs are not a safe place for one (fixes #8).
  */
 
 import type { Tier } from './score';
@@ -47,11 +48,17 @@ export async function sendMagicLinkEmail(input: MagicLinkEmail): Promise<SendRes
     process.env.RESEND_FROM_EMAIL ?? 'noreply@burn-rate.lol';
 
   if (!apiKey) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(
+        '[api] RESEND_API_KEY is not set — refusing to fake a sent magic-link email in production.',
+      );
+      return { ok: false, devMode: false, error: 'email_not_configured' };
+    }
     console.warn(
       '[api] DEV MODE — RESEND_API_KEY is unset, no email sent. ' +
         'Set RESEND_API_KEY + a verified RESEND_FROM_EMAIL before launch.',
     );
-    console.warn(`[api] DEV MODE — magic link for ${input.to}: ${input.magicLink}`);
+    // The magic link is deliberately NEVER logged: it is a bearer token.
     return { ok: true, devMode: true };
   }
 
@@ -77,6 +84,8 @@ export async function sendMagicLinkEmail(input: MagicLinkEmail): Promise<SendRes
         subject,
         text,
       }),
+      // A hung Resend must not hold the worker (fixes #9).
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
@@ -107,6 +116,12 @@ export async function sendScoreDropAlert(input: ScoreDropAlert): Promise<SendRes
   const dossierUrl = `${input.siteUrl}/s/${input.slug}`;
 
   if (!apiKey) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(
+        '[api] RESEND_API_KEY is not set — refusing to fake a sent score-drop alert in production.',
+      );
+      return { ok: false, devMode: false, error: 'email_not_configured' };
+    }
     console.warn(
       '[api] DEV MODE — RESEND_API_KEY is unset, no alert email sent. ' +
         'Set RESEND_API_KEY + a verified RESEND_FROM_EMAIL before launch.',
@@ -144,6 +159,8 @@ export async function sendScoreDropAlert(input: ScoreDropAlert): Promise<SendRes
         subject,
         text,
       }),
+      // A hung Resend must not hold the worker (fixes #9).
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');

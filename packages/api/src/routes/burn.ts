@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import { setShareCardHeaders } from '../lib/security';
+import { setShareCardHeaders, clientIp } from '../lib/security';
 import { validateSubmit } from '../lib/validate';
 import { getSupabase } from '../lib/supabase';
 import { hitRateLimit } from '../lib/ratelimit';
@@ -70,7 +70,7 @@ burnRouter.post('/submit', async (req: Request, res: Response) => {
   }
 
   // 2. Rate limit: 10 submissions/hour per IP (§1.5).
-  const ip = req.ip ?? 'unknown';
+  const ip = clientIp(req);
   if (hitRateLimit(`burn-submit:${ip}`, 10, 60 * 60 * 1000)) {
     return res.status(429).json({
       error: 'rate_limited',
@@ -338,7 +338,7 @@ burnRouter.get('/report-card/:slug.png', async (req: Request, res: Response) => 
   if (!slug) return notFound();
 
   // PNG endpoints are cheap to hit but render on CPU — generous per-IP budget.
-  const ip = req.ip ?? 'unknown';
+  const ip = clientIp(req);
   if (hitRateLimit(`burn-report:${ip}`, 120, 60 * 60 * 1000)) {
     return res.status(429).json({
       error: 'rate_limited',
@@ -426,7 +426,7 @@ burnRouter.get('/report-card/:slug.png', async (req: Request, res: Response) => 
  */
 burnRouter.post('/claim', async (req: Request, res: Response) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
-  const ip = req.ip ?? 'unknown';
+  const ip = clientIp(req);
 
   const inboxReply = () =>
     res.status(200).json({
@@ -516,11 +516,12 @@ burnRouter.post('/claim', async (req: Request, res: Response) => {
     magicLink,
   });
   if (!sent.ok) {
-    // The claim row exists; the founder can request another link.
-    return res.status(500).json({
-      error: 'email_send_failed',
-      message: 'The email refused to leave the building. Try again in a bit.',
-    });
+    // Anti-enumeration (fixes #11): the reply is identical whether the
+    // company exists or the email failed to send. The claim row exists;
+    // the founder can request another link. The failure is logged
+    // server-side for ops.
+    console.error('[api] burn claim email failed:', sent.error ?? 'unknown');
+    return inboxReply();
   }
 
   return inboxReply();
@@ -718,7 +719,7 @@ burnRouter.get('/claim/:claim_id/dns', async (req: Request, res: Response) => {
  */
 burnRouter.post('/verify-dns', async (req: Request, res: Response) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
-  const ip = req.ip ?? 'unknown';
+  const ip = clientIp(req);
 
   // DNS lookups are outbound work we pay for — tight per-IP budget.
   if (hitRateLimit(`burn-verify-dns:${ip}`, 10, 60 * 60 * 1000)) {
