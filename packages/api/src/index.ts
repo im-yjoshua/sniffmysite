@@ -68,6 +68,26 @@ app.use((_req, res) => {
   res.status(404).json({ error: 'not_found' });
 });
 
+// Centralized error middleware (fixes #15): any route error forwarded via
+// next(err) — including async rejections caught by asyncHandler — lands
+// here as a JSON 500 instead of Express's default HTML page. The 500
+// status is preserved because payment webhooks (Polar) depend on it for
+// redelivery.
+app.use(
+  (
+    err: unknown,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    console.error('[api] unhandled route error:', err);
+    res.status(500).json({
+      error: 'internal_error',
+      detail: 'Something broke on our end. Try again in a bit.',
+    });
+  },
+);
+
 app.listen(PORT, () => {
   console.log(`[api] listening on :${PORT}`);
 });

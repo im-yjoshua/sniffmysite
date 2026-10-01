@@ -263,25 +263,31 @@ export function supabaseThroneStore(): ThroneStore {
             .eq('order_id', orderId);
         }
 
-        const current = await readState(now);
-        if (current.holder?.order_id === orderId) {
-          await state()
-            .update({
-              order_id: null,
-              url: null,
-              domain: null,
-              price_cents: THRONE_FLOOR_CENTS,
-              score: null,
-              tier: null,
-              roast: null,
-              held_since: null,
-              expires_at: null,
-              updated_at: now.toISOString(),
-            })
-            .eq('id', 1);
-          return true;
-        }
-        return false;
+        // ATOMIC vacate (fixes #10): one conditional UPDATE instead of
+        // readState → conditional clear. The old read-then-write let a
+        // refund's delayed clear wipe a throne legitimately installed by a
+        // concurrent paid claim between the read and the write. The
+        // WHERE order_id clause means we only clear OUR bid's hold; a row
+        // already re-installed by someone else is untouched. Clearing a
+        // merely-expired row is harmless (lazy expiry would clear it anyway).
+        const { data: cleared, error: clearError } = await state()
+          .update({
+            order_id: null,
+            url: null,
+            domain: null,
+            price_cents: THRONE_FLOOR_CENTS,
+            score: null,
+            tier: null,
+            roast: null,
+            held_since: null,
+            expires_at: null,
+            updated_at: now.toISOString(),
+          })
+          .eq('id', 1)
+          .eq('order_id', orderId)
+          .select('id');
+        if (clearError) throw clearError;
+        return (cleared?.length ?? 0) > 0;
       }),
   };
 }

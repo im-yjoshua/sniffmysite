@@ -25,6 +25,7 @@ import {
 import { getSupabase } from '../lib/supabase';
 import {
   rateLimit,
+  asyncHandler,
   CHECKOUT_LIMIT,
   CHECKOUT_WINDOW_MS,
   WEBHOOK_LIMIT,
@@ -167,7 +168,7 @@ billingRouter.post(
   // throttles a flooding source, never Lemon Squeezy's own servers. Unsigned
   // floods get 429s instead of burning HMAC CPU and log lines.
   rateLimit('billing-webhook', WEBHOOK_LIMIT, WEBHOOK_WINDOW_MS),
-  async (req: Request & { rawBody?: Buffer }, res: Response) => {
+  asyncHandler(async (req: Request & { rawBody?: Buffer }, res: Response) => {
     const secret = (process.env.LEMONSQUEEZY_WEBHOOK_SECRET ?? '').trim();
     if (!secret) {
       return res.status(503).json({ error: 'webhook_not_configured' });
@@ -209,7 +210,7 @@ billingRouter.post(
     );
     // 200 for handled AND ignored events — only bad signatures get a retry.
     res.json({ received: true, ...outcome });
-  },
+  }),
 );
 
 /**
@@ -247,29 +248,41 @@ async function handleBurnWebhook(
   res.json({ received: true, ...outcome });
 }
 
-billingRouter.get('/credits', async (req: Request, res: Response) => {
-  const email = (req.query.email ?? '').toString().trim();
-  if (!EMAIL_RE.test(email)) {
-    return res.status(400).json({ error: 'invalid_email' });
-  }
-  res.json(await creditsFor(email));
-});
+billingRouter.get(
+  '/credits',
+  // Rate-limited (fixes #5): balances are keyed by email, which is not a
+  // secret — unbounded reads enable balance enumeration.
+  rateLimit('billing-credits', 30, 60_000),
+  async (req: Request, res: Response) => {
+    const email = (req.query.email ?? '').toString().trim();
+    if (!EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: 'invalid_email' });
+    }
+    res.json(await creditsFor(email));
+  },
+);
 
-billingRouter.post('/consume', async (req: Request, res: Response) => {
-  const { email, product } = req.body ?? {};
-  if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
-    return res.status(400).json({ error: 'invalid_email' });
-  }
-  if (!isProductKey(product)) {
-    return res.status(400).json({ error: 'unknown_product' });
-  }
-  const { ok, remaining } = await consumeCredit(email.trim(), product);
-  if (!ok) {
-    return res.status(402).json({
-      error: 'no_credits',
-      detail: 'No credits left for this product.',
-      remaining,
-    });
-  }
-  res.json({ ok: true, product, remaining });
-});
+billingRouter.post(
+  '/consume',
+  // Rate-limited (fixes #5): same reasoning — slows any attempt to
+  // rapid-fire spends against a guessed/known buyer email.
+  rateLimit('billing-consume', 30, 60_000),
+  async (req: Request, res: Response) => {
+    const { email, product } = req.body ?? {};
+    if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
+      return res.status(400).json({ error: 'invalid_email' });
+    }
+    if (!isProductKey(product)) {
+      return res.status(400).json({ error: 'unknown_product' });
+    }
+    const { ok, remaining } = await consumeCredit(email.trim(), product);
+    if (!ok) {
+      return res.status(402).json({
+        error: 'no_credits',
+        detail: 'No credits left for this product.',
+        remaining,
+      });
+    }
+    res.json({ ok: true, product, remaining });
+  },
+);

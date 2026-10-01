@@ -854,8 +854,13 @@ vaporRouter.post(
  * GET /api/vapor/throne — the current throne state. Public, no auth.
  * The auction's single source of truth: who holds it, what they paid,
  * and the minimum the next bid must be ($19 floor, +$3 per steal).
+ * Rate-limited (fixes #13): readState does lazy-expiry DB writes, so an
+ * unbounded unauthenticated GET is write amplification.
  */
-vaporRouter.get('/throne', async (_req, res) => {
+vaporRouter.get(
+  '/throne',
+  rateLimit('throne-status', LEADERBOARD_LIMIT, LEADERBOARD_WINDOW_MS),
+  async (_req, res) => {
   try {
     const status = await supabaseThroneStore().getStatus();
     const h = status.holder;
@@ -950,7 +955,11 @@ vaporRouter.post(
  * The pinned spotlight IS the throne holder; kept so nothing that cached
  * the old shape breaks during the transition.
  */
-vaporRouter.get('/featured', async (_req, res) => {
+// Rate-limited (fixes #13): same lazy-expiry write concern as /throne.
+vaporRouter.get(
+  '/featured',
+  rateLimit('featured-status', LEADERBOARD_LIMIT, LEADERBOARD_WINDOW_MS),
+  async (_req, res) => {
   try {
     const status = await supabaseThroneStore().getStatus();
     const h = status.holder;

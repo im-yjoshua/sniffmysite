@@ -81,6 +81,20 @@ export function rateLimit(
 }
 
 /**
+ * Wrap an async route handler so rejected promises reach Express's error
+ * middleware instead of becoming unhandled rejections (Express 4 does not
+ * catch async throws on its own). Used on the webhook routes, where a DB
+ * failure must surface as a JSON 500 (fixes #15).
+ */
+export function asyncHandler(
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>,
+) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+/**
  * Response headers for the public share-card PNG endpoints (vapor OG cards,
  * burn report cards). These images are MEANT to be hotlinked cross-origin —
  * social crawlers, chat embeds, and the in-app <img> previews. Helmet's

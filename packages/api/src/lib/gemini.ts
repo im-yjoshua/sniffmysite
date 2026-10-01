@@ -170,12 +170,21 @@ export async function generateOneLiner(
       console.warn('[gemini] one-liner rejected (too short/long or filtered)');
       return null;
     }
-    cache.set(cacheKey, line);
+    // The prompt includes page-controlled phrases, so the model can be
+    // steered into emitting markup. Escape HTML entities before the line
+    // touches the cache or the response — a frontend rendering it as HTML
+    // must never execute page-authored tags (fixes #7).
+    const safe = line
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    cache.set(cacheKey, safe);
     if (cache.size > CACHE_MAX) {
       const oldest = cache.keys().next();
       if (!oldest.done) cache.delete(oldest.value);
     }
-    return line;
+    return safe;
   } catch {
     return null;
   } finally {
