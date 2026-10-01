@@ -510,7 +510,10 @@ describe('sponsor HTTP routes', () => {
       'a@example.com',
       7,
     );
-    const future = new Date(T0 + 10 * DAY).toISOString();
+    // 'Future' must be relative to REAL now: the live GET /sponsors route
+    // checks listActiveSponsors() with Date.now(), so a frozen T0-based
+    // date ages into the real present and flips this assertion.
+    const future = new Date(Date.now() + 10 * DAY).toISOString();
     const ok = await req('POST', `/admin/sponsors/${record.id}/approve`, {
       token: 'test-admin-token-xyz',
       body: { starts_at: future },
