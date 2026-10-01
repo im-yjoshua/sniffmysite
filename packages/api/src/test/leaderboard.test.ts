@@ -79,9 +79,11 @@ describe('seed data', () => {
         `out of order at ${i}`,
       );
     }
-    // apple.com is the least vapor (10) → the highest sniff (90).
-    assert.equal(entries[0].domain, 'apple.com');
-    assert.equal(entries[0].sniff_score, 90);
+    // deepseek.com is the least vapor (2) → the highest sniff (98):
+    // the v3.1 fairness fixes (CJK pricing signals, #20) correctly credit
+    // its API pricing page. apple.com follows at 90.
+    assert.equal(entries[0].domain, 'deepseek.com');
+    assert.equal(entries[0].sniff_score, 98);
   });
 
   it('sort=improved is stable alphabetical with delta: null everywhere', () => {
@@ -164,8 +166,8 @@ describe('GET /api/vapor/leaderboard', () => {
     assert.equal(body.sort, 'real');
     assert.equal(body.count, 20);
     assert.equal(body.algo_version, 'v3');
-    assert.equal(body.entries[0].domain, 'apple.com');
-    assert.equal(body.entries[0].sniff_score, 90);
+    assert.equal(body.entries[0].domain, 'deepseek.com');
+    assert.equal(body.entries[0].sniff_score, 98);
     assert.ok(body.entries[0].sniff_score >= body.entries[1].sniff_score);
   });
 

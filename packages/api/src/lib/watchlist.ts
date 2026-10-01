@@ -46,6 +46,9 @@ const TIER_RANK: Tier[] = [
 
 /** 10 points — a drop this size is a real product move, not a wiggle. */
 export const SCORE_DROP_THRESHOLD = 10;
+/** 5 points — the minimum point drop for a tier-boundary wobble to count
+ *  as an alert (hysteresis, fixes #23). */
+export const TIER_DROP_MIN_POINTS = 5;
 
 function tierRank(tier: Tier): number {
   return TIER_RANK.indexOf(tier);
@@ -149,9 +152,14 @@ export async function processScanForWatchlist(
   if (!baseline) return;
 
   const pointsDrop = baseline.sniff_score - result.sniff_score;
+  // Hysteresis (fixes #23): a bare tier-boundary wobble (75→74, one point)
+  // is noise, not news — and the old any-tier-drop rule re-mailed on every
+  // 74/75/74 oscillation. Tier drops only alert with a meaningful point
+  // drop behind them.
+  const tierDropped = tierRank(result.tier) > tierRank(baseline.tier);
   const qualifies =
     pointsDrop >= SCORE_DROP_THRESHOLD ||
-    tierRank(result.tier) > tierRank(baseline.tier);
+    (tierDropped && pointsDrop >= TIER_DROP_MIN_POINTS);
 
   if (!qualifies) {
     // Stable, up, or a small wiggle — no alert, and any pending owed-alert

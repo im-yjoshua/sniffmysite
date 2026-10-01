@@ -189,14 +189,23 @@ describe('processScanForWatchlist', () => {
     assert.equal(entry.lastAlertedScore, 75);
   });
 
-  it('alerts on a tier drop under 10 points (81 → 79 crosses a boundary)', async () => {
+  it('stays silent on a 2-point tier-boundary wobble (81 → 79)', async () => {
+    // Hysteresis (fixes #23): a bare boundary wobble is noise, not news.
     watch(D, FREE_EMAIL);
     const { sender, calls } = fakeSender();
     await scan(D, 81, 'LAUREATE', sender);
-    await scan(D, 79, 'GLADIATOR', sender); // -2, but tier rank dropped
+    await scan(D, 79, 'GLADIATOR', sender); // -2 and tier rank dropped: silent
+    assert.equal(calls.length, 0);
+  });
+
+  it('alerts on a tier drop with real points behind it (81 → 74)', async () => {
+    watch(D, FREE_EMAIL);
+    const { sender, calls } = fakeSender();
+    await scan(D, 81, 'LAUREATE', sender);
+    await scan(D, 74, 'RECRUIT', sender); // -7 and tier rank dropped
     assert.equal(calls.length, 1);
     assert.equal(calls[0].prevScore, 81);
-    assert.equal(calls[0].newScore, 79);
+    assert.equal(calls[0].newScore, 74);
   });
 
   it('stays silent on a 5-point wiggle in the same tier', async () => {

@@ -47,6 +47,11 @@ export const MOVERS_PER_SIDE = 10;
  */
 export const MOVERS_THIN_THRESHOLD = 5;
 
+/** Noise floor (fixes #24): sub-3-point wobbles — including the freshness
+ *  year-boundary phantom, where a `© 2025` page loses 2 sniff points
+ *  Dec→Jan with zero content change — are not "moves". */
+export const MOVER_MIN_DELTA = 3;
+
 export interface MoverRow {
   /** Normalized domain, doubles as the dossier slug. */
   slug: string;
@@ -132,7 +137,7 @@ export function computeMovers(
   // so they ride along as `steady` ("Held their ground") instead of being
   // silently dropped. Without this the board looks broken every week the
   // nose agrees with itself (which, being deterministic, is most weeks).
-  const movers = qualified.filter((r) => r.delta !== 0);
+  const movers = qualified.filter((r) => Math.abs(r.delta) >= MOVER_MIN_DELTA);
   const steady = qualified
     .filter((r) => r.delta === 0)
     .sort((a, b) => b.new_score - a.new_score || (a.domain < b.domain ? -1 : 1))

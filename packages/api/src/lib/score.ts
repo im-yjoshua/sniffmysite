@@ -156,7 +156,12 @@ export interface ScanResult {
   evidence: ScoreEvidence;
 }
 
-const clamp = (n: number): number => Math.max(0, Math.min(100, Math.round(n)));
+const clamp = (n: number): number => {
+  // NaN must never become a score (fixes #27): an unguarded NaN would flow
+  // into sniffScoreFor → tierFor('LION FOOD') and serialize as JSON null.
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, Math.round(n)));
+};
 
 /**
  * THE public-number conversion — the one clean place. Sniff = 100 − vapor,
@@ -430,11 +435,35 @@ function ownBrandLabel(url: string): string {
   }
 }
 
-const TRUST_PHRASES = /trusted by|loved by|used by|join [\d,]+\+?/gi;
+// Known single-word brands for the trust-name detector (fixes #17).
+// A bare capitalized word after "trusted by" is usually a sentence start,
+// so single words only count as named companies when suffixed ("Acme Inc")
+// or on this list. Lowercase; matched case-insensitively via .toLowerCase().
+const KNOWN_BRANDS = new Set(
+  [
+    'google', 'stripe', 'shopify', 'amazon', 'microsoft', 'apple', 'netflix',
+    'airbnb', 'uber', 'slack', 'zoom', 'adobe', 'salesforce', 'oracle',
+    'ibm', 'tesla', 'spotify', 'meta', 'tiktok', 'samsung', 'sony', 'nike',
+    'ikea', 'walmart', 'target', 'pepsi', 'intel', 'cisco', 'dell', 'hp',
+    'lenovo', 'asus', 'acer', 'lg', 'panasonic', 'philips', 'siemens',
+    'toyota', 'honda', 'ford', 'bmw', 'audi', 'volkswagen', 'adidas', 'puma',
+    'zara', 'hm', 'uniqlo', 'starbucks', 'mcdonalds', 'kfc', 'cocacola',
+    'disney', 'warner', 'hbo', 'spotify', 'github', 'gitlab', 'figma',
+    'notion', 'asana', 'trello', 'dropbox', 'box', 'zendesk', 'hubspot',
+    'mailchimp', 'shopify', 'square', 'paypal', 'visa', 'mastercard', 'amex',
+    'chase', 'hsbc', 'barclays', 'revolut', 'wise', 'coinbase', 'binance',
+    'openai', 'anthropic', 'nvidia', 'amd', 'qualcomm', 'broadcom',
+  ].map((s) => s.toLowerCase()),
+);
+
+const TRUST_PHRASES = /trusted by|loved by|used by (?:[\d,]+[kmb]?\+?|thousands|millions|hundreds)|join [\d,]+\+?/gi;
 // NOTE: bare "powering" was deliberately removed (2026-09-20 calibration).
 // "Powering businesses of all sizes" is a product statement, not a
 // social-proof claim — the sketch pattern per §2.4 is unattributed
 // ENDORSEMENT ("trusted by …" with no names), not the verb "power".
+// Same reasoning (fixes #25): bare "used by" without a quantifier
+// ("used by developers worldwide") is a product statement, not an
+// endorsement. It only counts with a number attached.
 // "…," Name, Title  → named. Quote followed by a bare role → anonymous.
 const ANON_TESTIMONIAL_RE =
   /"[^"]{25,220}"\s*[-–—]\s*(?:([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s*,)?\s*(CEO|CMO|CTO|CFO|VP|SVP|founder|co-founder|head of [a-z ]+|marketing manager|product manager|director)\b/gi;
@@ -545,13 +574,20 @@ function buildVerdict(
 const LANGUAGE_NOTE = 'nose only smells English — hype checks skipped';
 
 /**
- * True when the page's visible text is not predominantly Latin-script
- * English. The buzzword, grand-claim, and vague-verb detectors only smell
- * English: on a German/Japanese/Arabic page they would either hand out a
- * fake clean bill ("zero hype words found!") or trip on coincidence. When
- * this fires, those three checks are skipped (metrics read 0) and the
- * remaining three weights renormalize to 100, so the page is judged only
+ * True when the page's visible text is not predominantly Latin-script.
+ * The buzzword, grand-claim, and vague-verb detectors only smell English:
+ * on a Japanese/Arabic/Chinese page they would either hand out a fake
+ * clean bill ("zero hype words found!") or trip on coincidence. When this
+ * fires, those three checks are skipped (metrics read 0, denominator stays
+ * 100 — see the v2 note at the scoring site) and the page is judged only
  * on the language-independent checks: social proof, pricing, freshness.
+ *
+ * HONEST LIMITATION (fixes #21): this is script-based, not language-based.
+ * Latin-script non-English pages (German, French, Spanish) do NOT trigger
+ * it — their English hype detectors find nothing (a too-clean bill) while
+ * vague-verb still judges their sentences by English concreteness
+ * heuristics. A stopword-based detector for major Latin-script languages
+ * would close this; until then the guard covers non-Latin scripts only.
  * Needs 50+ letters before it dares to judge.
  */
 function isNonEnglishText(text: string): boolean {
@@ -591,6 +627,14 @@ function stripChrome(html: string): string {
 /* Main entry point                                                    */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Score one fetched page. PRECONDITION (fixes #29): the page must have
+ * ≥100 readable characters — `fetchPage` enforces this with the
+ * `empty_page` error before scoring. Called directly with empty/whitespace
+ * HTML, the scorer has no evidence to work with and the numbers are
+ * meaningless (absence of hype reads as a good score). The route never
+ * sends such input; this documents the contract for direct callers.
+ */
 export function scorePage(html: string, url: string, now: Date = new Date()): ScanResult {
   const text = extractVisibleText(html);
   const title = extractTitle(html);
@@ -612,10 +656,25 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
   // buzzword/claim/vague entirely and judge on the remaining three checks.
   const languageSkipped = isNonEnglishText(fullText);
 
+  // Claim sentences are identified BEFORE the buzzword pass so one slogan
+  // can't spend three budgets at once (fixes #18): a sentence flagged as a
+  // claim sentence is blanked (length preserved, words zeroed) for the
+  // buzzword count. "Revolutionize your workflow." fires claim (25%) but no
+  // longer also buzzword (25%) on the same span. Blanking happens inside
+  // fullText (not a sentences-only rebuild) so short fragments, headings,
+  // and nav labels keep their buzzword hits.
+  const claimSentenceSet: Set<string> = languageSkipped
+    ? new Set()
+    : new Set(sentences.filter((s) => CLAIM_PATTERNS.some((re) => re.test(s))));
+  let buzzText = fullText;
+  for (const s of claimSentenceSet) {
+    buzzText = buzzText.split(s).join(' '.repeat(s.length));
+  }
+
   // --- 1. Buzzword density (v3: hero hits count double) ---
   const { hits: buzzHits, top: topPhrases } = languageSkipped
     ? { hits: 0, top: [] as PhraseHit[] }
-    : countBuzzwords(fullText);
+    : countBuzzwords(buzzText);
   // The h1's hits are already inside buzzHits (it's part of the visible
   // text) — counting them once more makes the hero weight 2×.
   const heroHits = languageSkipped ? 0 : countBuzzwords(extractH1(html)).hits;
@@ -624,9 +683,7 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
   const mBuzzword = clamp(buzzDensity * BUZZWORD_SLOPE);
 
   // --- 2. Claim-to-proof ---
-  const claimSentences = languageSkipped
-    ? 0
-    : sentences.filter((s) => CLAIM_PATTERNS.some((re) => re.test(s))).length;
+  const claimSentences = claimSentenceSet.size;
   // Evidence counted from MAIN CONTENT only (v2) — the proof discount must
   // be earned by the page, not gifted by its nav bar. v3 weights it: hard
   // proof counts 1.0 per link, soft proof 0.5.
@@ -650,8 +707,20 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
   if (trustMatches.length > 0) {
     const named = trustMatches.reduce((acc, mt) => {
       const window = fullText.slice((mt.index ?? 0) + mt[0].length, (mt.index ?? 0) + mt[0].length + 300);
-      const names = window.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g) ?? [];
-      return acc + names.length;
+      // Multi-word names ("Acme Corp") — the original detector.
+      const multi = window.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g) ?? [];
+      // Single-word names (fixes #17): the most common company-name shape
+      // ("Google", "Stripe") was invisible to the multi-word pattern, so
+      // properly-attributed trust walls were punished as sketchy. A bare
+      // capitalized word is usually just a sentence start, so single words
+      // only count with a company suffix ("Acme Inc") or as a known brand.
+      let single = 0;
+      const singleRe = /\b([A-Z][a-z]+)\b(\s+(?:Inc\.?|LLC|Corp\.?|Corporation|Ltd\.?|Limited|GmbH|AG|SAS|Pty\.?|BV|Co\.?))?/g;
+      let sm: RegExpExecArray | null;
+      while ((sm = singleRe.exec(window)) !== null) {
+        if (KNOWN_BRANDS.has(sm[1].toLowerCase()) || sm[2]) single++;
+      }
+      return acc + multi.length + single;
     }, 0);
     if (named < trustMatches.length) mSocial += TRUST_NO_NAMES_PTS; // "trusted by" + no names = sketchy
   }
@@ -684,10 +753,12 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
   // zero actual prices is the page hiding the numbers — it scores 50,
   // not 0. Prices stated but no pricing page → 30 (the info exists, just
   // not where you'd look).
-  const PRICE_SIGNAL_RE = /[$€£¥]\s*\d|\/(mo|month|year)\b|per user|per seat|free tier|free plan/i;
+  const PRICE_SIGNAL_RE = /[$€£¥]\s*\d|\/(mo|month|year)\b|per user|per seat|free tier|free plan|价格|料金|定价|價格/i;
   const PRICING_LINK_NO_SIGNALS = 50;
   const PRICING_SIGNALS_NO_LINK = 30;
-  const hasPricing = links.some((l) => /pricing/i.test(l.href) || /pricing/i.test(l.text));
+  // Pricing links in CJK (fixes #20): /pricing/i misses 料金/价格, which
+  // systematically penalized non-English pages on top of the weight shift.
+  const hasPricing = links.some((l) => /pricing|料金|价格|定价|價格/i.test(l.href) || /pricing|料金|价格|定价|價格/i.test(l.text));
   const hasPriceSignals = PRICE_SIGNAL_RE.test(fullText);
   const salesOnly = !hasPricing && SALES_ONLY_RE.test(fullText);
   // v3: the period matters — a number with no billing period is half-hidden.
@@ -708,8 +779,21 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
 
   // --- 6. Freshness (v2) ---
   // Age curve smoothed: 0yr → 0, 1yr → 20, 2yr → 40, 3+yr → 70.
-  const years = [...fullText.matchAll(/(?:©|\(c\)|copyright)\s*(19|20)(\d{2})/gi)].map((mt) => Number(`20${mt[2]}`));
-  // Also catch year ranges like "© 2020–2026": take the max year on the page.
+  // The century comes from the match itself (fixes #16: `© 1999` used to
+  // parse as 2099). Year ranges (`© 2020–2026`, `© 1999–2005`) resolve to
+  // the range END (fixes #22) — the page is as fresh as its latest claim.
+  const years = [...fullText.matchAll(/(?:©|\(c\)|copyright)\s*(19|20)(\d{2})(?:\s*[-–—]\s*(?:(19|20))?(\d{2}))?/gi)].map(
+    (mt) => {
+      const startTwo = Number(mt[2]);
+      if (mt[4] === undefined) return Number(`${mt[1]}${mt[2]}`);
+      const endTwo = Number(mt[4]);
+      // No explicit century on the range end: `© 1999–05` rolled over.
+      const endCentury = mt[3] ?? (endTwo < startTwo ? String(Number(mt[1]) + 1) : mt[1]);
+      return Number(`${endCentury}${mt[4]}`);
+    },
+  );
+  // Bare 20xx mentions elsewhere on the page (blog dates, "since 2019").
+  // The © year wins when present — it is the site's own freshness claim.
   const allYears = [...fullText.matchAll(/\b(20\d{2})\b/g)].map((mt) => Number(mt[1]));
   const copyrightYear = years.length > 0 ? Math.max(...years) : null;
   const newestYear = allYears.length > 0 ? Math.max(...allYears) : null;
@@ -740,13 +824,13 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
     freshness: mFreshness,
   };
 
-  // The language guard (v2): when the hype detectors are skipped, their
-  // weights are EXCLUDED and the remaining weights renormalize to 100 —
-  // a skipped check must not drag the score toward zero. Weights still
-  // sum to 100 in the normal case (asserted in tests).
-  const activeTotal = languageSkipped
-    ? WEIGHTS.social_proof + WEIGHTS.pricing_opacity + WEIGHTS.freshness
-    : 100;
+  // The language guard (v2, fixed #20): when the hype detectors are
+  // skipped, they contribute 0 and the denominator STAYS at 100 — the old
+  // renormalization (activeTotal = 35) silently amplified the remaining
+  // checks ×2.86, so identical pages scored 88 in English but 67 in
+  // Japanese. A skipped check must not drag the score toward zero, but it
+  // must not inflate the others either. Nominal weights are unchanged
+  // (still sum to 100, asserted in tests); only the skip math changed.
   const vapor_score = clamp(
     (metrics.buzzword_density * (languageSkipped ? 0 : WEIGHTS.buzzword_density) +
       metrics.claim_to_proof * (languageSkipped ? 0 : WEIGHTS.claim_to_proof) +
@@ -754,7 +838,7 @@ export function scorePage(html: string, url: string, now: Date = new Date()): Sc
       metrics.social_proof * WEIGHTS.social_proof +
       metrics.pricing_opacity * WEIGHTS.pricing_opacity +
       metrics.freshness * WEIGHTS.freshness) /
-      activeTotal,
+      100,
   );
   // The public number is the FLIP of the internal vapor measurement.
   // sniffScoreFor() is the one clean place this conversion happens —

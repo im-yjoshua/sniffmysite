@@ -106,6 +106,27 @@ export function fetchErrorPublicDetail(code: FetchErrorCode): string {
 export const MIN_READABLE_CHARS = 100;
 
 /**
+ * Decode the response body honoring the declared charset (fixes #28).
+ * Blind utf-8 decoding mojibakes latin-1/Shift_JIS pages, corrupting the
+ * language-guard letter ratio and every text metric. Priority: Content-Type
+ * header → <meta charset> in the first 2KB → utf-8 fallback. Unknown
+ * labels fall back to utf-8 rather than throwing.
+ */
+export function decodeBody(body: Buffer, contentType: string): string {
+  const head = body.subarray(0, 2048).toString('latin1');
+  const headerCharset = /charset\s*=\s*["']?([\w-]+)/i.exec(contentType)?.[1];
+  const metaCharset =
+    /<meta[^>]+charset\s*=\s*["']?([\w-]+)/i.exec(head)?.[1] ??
+    /<meta[^>]+content\s*=\s*["'][^"']*charset=([\w-]+)/i.exec(head)?.[1];
+  const charset = (headerCharset ?? metaCharset ?? 'utf-8').toLowerCase();
+  try {
+    return new TextDecoder(charset).decode(body);
+  } catch {
+    return body.toString('utf8');
+  }
+}
+
+/**
  * Bot-protection / captcha interstitials (Cloudflare, PerimeterX, DataDome…)
  * sometimes come back as HTTP 200 with a challenge page instead of content.
  * Scoring one would produce a garbage result, so we refuse loudly instead.
@@ -409,12 +430,24 @@ function decodeEntities(s: string): string {
 /** Visible text with scripts, styles, templates, svg and <nav> stripped. Footer kept (© year). */
 export function extractVisibleText(html: string): string {
   let t = html;
+  // <head> is not visible content (fixes #19): without this, <title> text
+  // survived into the visible text AND was prepended again by scorePage's
+  // `title + text`, counting the title twice.
+  t = t.replace(/<head[\s>][\s\S]*?<\/head\s*>/gi, ' ');
   t = t.replace(/<script[\s>][\s\S]*?<\/script\s*>/gi, ' ');
   t = t.replace(/<style[\s>][\s\S]*?<\/style\s*>/gi, ' ');
   t = t.replace(/<noscript[\s>][\s\S]*?<\/noscript\s*>/gi, ' ');
   t = t.replace(/<template[\s>][\s\S]*?<\/template\s*>/gi, ' ');
   t = t.replace(/<svg[\s>][\s\S]*?<\/svg\s*>/gi, ' ');
   t = t.replace(/<nav[\s>][\s\S]*?<\/nav\s*>/gi, ' ');
+  // Cookie-consent banners (fixes #26): boilerplate ("We use cookies…")
+  // otherwise clears the 100-char readability floor on SPA shells and
+  // dilutes buzzword density. Non-greedy on purpose — this is a scoring
+  // heuristic, not a sanitizer.
+  t = t.replace(
+    /<(div|section|aside|dialog)[^>]*(?:id|class)\s*=\s*["'][^"']*(?:cookie|consent|gdpr)[^"']*["'][^>]*>[\s\S]*?<\/\1\s*>/gi,
+    ' ',
+  );
   t = t.replace(/<!--[\s\S]*?-->/g, ' ');
   // Preserve block boundaries as newlines so sentence splitting survives tag removal.
   t = t.replace(/<\/(p|div|h[1-6]|li|tr|td|section|article|header|footer|blockquote|dd|dt)>/gi, '\n');
@@ -550,7 +583,7 @@ export async function fetchPage(rawUrl: string, opts: FetchOptions = {}): Promis
       throw new FetchError('unsupported_content_type', `Refusing to score content-type "${contentType}"`);
     }
 
-    const html = res!.body.toString('utf8');
+    const html = decodeBody(res!.body, contentType);
     const text = extractVisibleText(html);
     const title = extractTitle(html);
     // A 200 with a captcha / bot-protection interstitial instead of content:
