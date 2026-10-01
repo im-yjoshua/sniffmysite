@@ -20,7 +20,16 @@
  * In-memory (v1, single instance) — same documented deploy seam as
  * lib/ratelimit.ts: move to a shared store when we outgrow one box.
  * Priority scans never touch this budget (own lane in routes/vapor.ts).
+ *
+ * Durability (fixes #6): the in-memory map is the synchronous source of
+ * truth, but every scan/grant is ALSO written through to
+ * vapor.scan_budget_events (migration 012), and on boot the map is
+ * hydrated from the last hour of rows. A restart no longer resets the
+ * budget. When Supabase isn't configured (dev/test), the module is pure
+ * in-memory exactly as before — the sync API is unchanged.
  */
+
+import { getSupabase } from './supabase';
 
 export const SCAN_FREE_LIMIT = 30;
 export const SCAN_WINDOW_MS = 60 * 60 * 1000;
@@ -76,6 +85,7 @@ export function scanAllowance(
 export function recordScan(ip: string, now: number = Date.now()): void {
   const b = forIp(ip, now);
   b.scans.push(now);
+  persistEvent(ip, 'scan', now);
 }
 
 /**
@@ -85,9 +95,87 @@ export function recordScan(ip: string, now: number = Date.now()): void {
 export function recordGrant(ip: string, now: number = Date.now()): void {
   const b = forIp(ip, now);
   b.grants.push(now);
+  persistEvent(ip, 'grant', now);
 }
 
 /** Test seam — wipes all scan budgets. Never called in production. */
 export function _resetScanBudgets(): void {
   budgets.clear();
+  hydrated = true; // tests drive the clock manually; skip DB hydration
+}
+
+/* ------------------------------------------------------------------ */
+/* Durable backing (migration 012) — fixes #6                          */
+/* ------------------------------------------------------------------ */
+
+let hydrated = false;
+let hydrating: Promise<void> | null = null;
+
+function supabaseOrNull() {
+  try {
+    return getSupabase();
+  } catch {
+    return null; // dev/test without Supabase: pure in-memory, as before
+  }
+}
+
+/**
+ * Hydrate the in-memory map from the last window of durable events.
+ * Called once at server startup (fire-and-forget safe); also lazily on
+ * first use if startup didn't run it. Failures only log — the budget
+ * keeps working in-memory.
+ */
+export function initScanBudgets(): Promise<void> {
+  if (hydrated) return Promise.resolve();
+  if (hydrating) return hydrating;
+  hydrating = (async () => {
+    const sb = supabaseOrNull();
+    if (!sb) {
+      hydrated = true;
+      return;
+    }
+    try {
+      const since = new Date(Date.now() - SCAN_WINDOW_MS).toISOString();
+      const { data, error } = await sb
+        .schema('vapor')
+        .from('scan_budget_events')
+        .select('ip,kind,at')
+        .gt('at', since)
+        .limit(50000);
+      if (error) throw error;
+      const now = Date.now();
+      for (const row of (data ?? []) as Array<{ ip: string; kind: string; at: string }>) {
+        const t = Date.parse(row.at);
+        if (!Number.isFinite(t)) continue;
+        const b = budgets.get(row.ip) ?? { scans: [], grants: [] };
+        if (row.kind === 'scan') b.scans.push(t);
+        else if (row.kind === 'grant') b.grants.push(t);
+        budgets.set(row.ip, b);
+      }
+      // Opportunistic housekeeping: rows older than two windows are dead.
+      await sb
+        .schema('vapor')
+        .from('scan_budget_events')
+        .delete()
+        .lt('at', new Date(now - 2 * SCAN_WINDOW_MS).toISOString());
+    } catch (e) {
+      console.error('[api] scan-budget hydration failed (in-memory only):', e);
+    } finally {
+      hydrated = true;
+    }
+  })();
+  return hydrating;
+}
+
+/** Fire-and-forget mirror of one budget event. Never throws. */
+function persistEvent(ip: string, kind: 'scan' | 'grant', at: number): void {
+  const sb = supabaseOrNull();
+  if (!sb) return;
+  sb.schema('vapor')
+    .from('scan_budget_events')
+    .insert({ ip, kind, at: new Date(at).toISOString() })
+    .then(
+      () => undefined,
+      (e) => console.error('[api] scan-budget persist failed:', e),
+    );
 }

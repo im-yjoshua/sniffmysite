@@ -7,6 +7,7 @@ import { burnRouter } from './routes/burn';
 import { billingRouter } from './routes/billing';
 import { burnBillingRouter } from './routes/burn-billing';
 import { sponsorsRouter } from './routes/sponsors';
+import { initScanBudgets } from './lib/scan-budget';
 
 dotenv.config();
 
@@ -67,6 +68,13 @@ app.use('/api/burn/billing', burnBillingRouter);
 app.use((_req, res) => {
   res.status(404).json({ error: 'not_found' });
 });
+
+// Hydrate the durable scan budget before serving traffic (fixes #6).
+// Fire-and-forget safe: a failure only logs, the budget keeps working
+// in-memory.
+initScanBudgets().catch((e) =>
+  console.error('[api] scan-budget init failed:', e),
+);
 
 // Centralized error middleware (fixes #15): any route error forwarded via
 // next(err) — including async rejections caught by asyncHandler — lands
